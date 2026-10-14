@@ -16,8 +16,17 @@ const EXACT: &[&str] = &[
     "CertificateKey",
 ];
 
-/// Case-insensitive substrings that mark a key as sensitive.
-const CONTAINS: &[&str] = &["secret", "password", "token", "privatekey"];
+/// Case-insensitive substrings that mark a key as sensitive (`apikey|accesskey|securitykey`: CR-2
+/// on T02 — `ApiKey`, `ApiAccessKey`, `ReadOnlyApiKey`, `SecurityKey` in the API spec).
+const CONTAINS: &[&str] = &[
+    "secret",
+    "password",
+    "token",
+    "privatekey",
+    "apikey",
+    "accesskey",
+    "securitykey",
+];
 
 /// Recursively replaces sensitive values with `"[redacted]"`.
 ///
@@ -91,6 +100,31 @@ mod tests {
                 "MonthlyAiGatewayInputTokens": 42,
                 "ApiSecret": null,
                 "Name": "zone"
+            })
+        );
+    }
+
+    #[test]
+    fn redacts_api_access_and_security_keys() {
+        let v = redact(json!({
+            "ApiKey": "a",
+            "ApiAccessKey": "b",
+            "ReadOnlyApiKey": "c",
+            "SecurityKey": "d",
+            "Nested": [{"accessKey": "e"}],
+            "EnableApiKeyThing": false,
+            "KeyName": "kept"
+        }));
+        assert_eq!(
+            v,
+            json!({
+                "ApiKey": REDACTED,
+                "ApiAccessKey": REDACTED,
+                "ReadOnlyApiKey": REDACTED,
+                "SecurityKey": REDACTED,
+                "Nested": [{"accessKey": REDACTED}],
+                "EnableApiKeyThing": false,
+                "KeyName": "kept"
             })
         );
     }

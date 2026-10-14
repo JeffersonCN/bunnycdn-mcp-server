@@ -1,6 +1,6 @@
 # T02 — Runtime core: config, client, server, stdio, harness
 
-> **Status:** changes-requested  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
+> **Status:** review  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor se possível; senão A em outra sessão
 
@@ -154,6 +154,40 @@ rodada 1:
 - **Viraram CR (só registro):** CR-2 (`apikey|accesskey|securitykey` em C3) e CR-3
   (`BunnyError::Decode` pode citar valores da resposta → T92).
 
+### 2026-10-14 — claude-opus-5-5 — rodada 3 → review
+**Resultado:** gate verde (`fmt --check`, `clippy --workspace --all-targets -D warnings`,
+`test --workspace`: 27 unit + 14 `tests/core.rs` + 1 `tests/e2e_stdio.rs`). Responde à Revisão
+rodada 2 e às decisões do orquestrador:
+
+- **B12 rmcp (bloqueante):** `main.rs` deixa o `EnvFilter` do usuário intacto (do `RUST_LOG` ou
+  `warn`) e aplica um **segundo filtro por layer** (`filter_fn`) que só corta: evento/span com
+  alvo `rmcp*` e nível acima de `INFO` é descartado. `registry().with(fmt::layer()
+  .with_writer(stderr).with_filter(env_filter).with_filter(rmcp_cap))`, conforme o protótipo do
+  revisor; comentário atualizado. Verificado à mão com stdio real + `tools/call` com argumento
+  `SENTINEL-PEM-4242` (stdout nunca contém o sentinela):
+
+  | `RUST_LOG` | `4f1666f` | agora |
+  |---|---|---|
+  | `trace` / `debug` / `rmcp=trace` / `info` | 0× | 0× |
+  | `rmcp::service=trace` | 2× | 0× |
+  | `rmcp::service=debug` | — | 0× |
+  | `trace,rmcp::service=trace` | — | 0× |
+  | `[serve_inner]=trace` | 2× | 0× |
+  | sem `RUST_LOG` | 6 linhas | 1 linha (= `6335917`) |
+  | `off` | 6 linhas | 0 linhas (= `6335917`) |
+- **CR-2 (aceita):** `CONTAINS` ganhou `apikey|accesskey|securitykey`; teste
+  `redacts_api_access_and_security_keys` (`ApiKey`, `ApiAccessKey`, `ReadOnlyApiKey`,
+  `SecurityKey`, `accessKey` aninhado; bool sob `…ApiKey…` mantido por CR-1).
+- **CR-3 (aceita, implementada):** `BunnyError::Decode` passa a carregar `decode_detail(&e)` em
+  vez de `e.to_string()`: categoria do erro serde (`invalid JSON` / `truncated JSON` / `JSON does
+  not match the expected shape` / I/O) + campo ausente ou tipo esperado (vêm dos nossos modelos,
+  não da resposta) + linha/coluna quando houver. O valor citado pelo serde nunca entra. Ex.:
+  `Unexpected response from Bunny API: JSON does not match the expected shape (expected u64)`.
+  Testes `decode_error_omits_response_values` e `decode_error_on_invalid_json_keeps_position_only`
+  (valor sentinela ausente, inclusive contendo `", expected "`).
+- **CR-1:** texto ajustado (nulo nunca é redigido). Aplicação em `specs/constitution.md` fica
+  com o orquestrador.
+
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
@@ -285,16 +319,19 @@ uma chamada real ao cliente, a API key **não** aparece em stderr (`set_sensitiv
 ## Change requests
 CR-1: `specs/constitution.md` (C3) · trocar "e qualquer campo cujo nome contenha `Secret`,
 `Password`, `Token` ou `PrivateKey`" por "…`PrivateKey`, exceto quando o valor é booleano,
-numérico ou nulo" · flags/contadores como `EnableTokenAuthentication` e
+numérico ou nulo (nulo nunca é redigido)" · flags/contadores como `EnableTokenAuthentication` e
 `MonthlyAiGateway*Tokens` não carregam segredo e são úteis na saída; `model/redact.rs` já se
-comporta assim (as chaves exatas de C3 continuam redigidas em qualquer tipo) · aberta
+comporta assim (as chaves exatas de C3 continuam redigidas quando o valor é string, bool, número,
+objeto ou array; nulo nunca é redigido) · aberta (texto ajustado na rodada 3; aplicação em C3 com o orquestrador)
 
 CR-2: `specs/constitution.md` (C3) · acrescentar `ApiKey`, `AccessKey` e `SecurityKey` às
 substrings sensíveis (`apikey|accesskey|securitykey`) · a spec da API tem `ApiKey`,
 `ApiAccessKey`, `ReadOnlyApiKey` (VideoLibraryModel) e `SecurityKey`
 (ResetPullZoneSecurityKeyModel), não cobertos por C3; fora do escopo atual das tools, mas
-`model/redact.rs` é congelado após T02 — aplicar CR exige mudar `CONTAINS` · aberta
+`model/redact.rs` é congelado após T02 — aplicar CR exige mudar `CONTAINS` · aceita,
+implementada em T02 (rodada 3)
 
 CR-3: `src/client/mod.rs` / `src/client/error.rs` (para T92) · `BunnyError::Decode` carrega a
 mensagem do serde, que pode citar valores da resposta (`invalid type: string "…"`); avaliar
-truncar/omitir o valor ou aplicar redação · risco baixo com modelos tolerantes · aberta
+truncar/omitir o valor ou aplicar redação · risco baixo com modelos tolerantes · aceita,
+implementada em T02 (rodada 3: `decode_detail` sem o valor citado)

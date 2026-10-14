@@ -10,7 +10,9 @@ use bunnycdn_mcp::server::BunnyServer;
 use bunnycdn_mcp::transport::http::{self, HttpOptions};
 use clap::{Parser, ValueEnum};
 use rmcp::ServiceExt;
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::filter::filter_fn;
+use tracing_subscriber::prelude::*;
+use tracing_subscriber::{EnvFilter, fmt};
 
 /// Exit code for configuration errors (missing/unreadable API key, bad base URL).
 const EXIT_CONFIG: u8 = 2;
@@ -50,16 +52,22 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
 
     // stdout carries the stdio protocol: logs go to stderr only (C3, REQ-CFG-06).
-    let mut filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
     // rmcp logs the full `Debug` of every request at debug/trace, including `tools/call`
-    // arguments (PEMs, keys). Cap it at info whatever RUST_LOG says (C3): a per-target directive
-    // added last wins over the user's global level and over a user `rmcp=trace`.
-    if let Ok(cap) = "rmcp=info".parse() {
-        filter = filter.add_directive(cap);
-    }
-    tracing_subscriber::fmt()
-        .with_writer(std::io::stderr)
-        .with_env_filter(filter)
+    // arguments (PEMs, keys). A second per-layer filter drops rmcp events above INFO (C3). It can
+    // only cut, never enable: an `EnvFilter` directive could be outranked by a more specific user
+    // directive (`rmcp::service=trace`, `[serve_inner]=trace`) and would also raise rmcp to info
+    // when RUST_LOG is unset or `off`.
+    let rmcp_cap = filter_fn(|meta| {
+        !(meta.target().starts_with("rmcp") && *meta.level() > tracing::Level::INFO)
+    });
+    tracing_subscriber::registry()
+        .with(
+            fmt::layer()
+                .with_writer(std::io::stderr)
+                .with_filter(env_filter)
+                .with_filter(rmcp_cap),
+        )
         .init();
 
     install_crypto_provider();

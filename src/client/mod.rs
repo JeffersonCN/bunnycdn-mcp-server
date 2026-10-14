@@ -155,7 +155,7 @@ impl BunnyClient {
                     return Ok(Value::Null);
                 }
                 return serde_json::from_slice(&bytes)
-                    .map_err(|e| BunnyError::Decode(e.to_string()));
+                    .map_err(|e| BunnyError::Decode(decode_detail(&e)));
             }
             return Err(map_error(status, path, &bytes));
         }
@@ -227,7 +227,36 @@ fn network_detail(e: reqwest::Error) -> String {
 }
 
 fn decode<T: DeserializeOwned>(v: Value) -> Result<T, BunnyError> {
-    serde_json::from_value(v).map_err(|e| BunnyError::Decode(e.to_string()))
+    serde_json::from_value(v).map_err(|e| BunnyError::Decode(decode_detail(&e)))
+}
+
+/// serde's message can quote response values (`invalid type: string "…"`), which may be
+/// sensitive (CR-3 on T02): keep only the category, the missing field or the expected type (both
+/// come from our models, not from the response) and the position.
+fn decode_detail(e: &serde_json::Error) -> String {
+    use serde_json::error::Category;
+    let mut detail = match e.classify() {
+        Category::Io => "I/O error while reading the body",
+        Category::Syntax => "invalid JSON",
+        Category::Eof => "truncated JSON",
+        Category::Data => "JSON does not match the expected shape",
+    }
+    .to_string();
+    let msg = e.to_string();
+    if let Some(field) = msg
+        .strip_prefix("missing field `")
+        .and_then(|rest| rest.split('`').next())
+    {
+        detail.push_str(&format!(" (missing field `{field}`)"));
+    } else if let Some((_, expected)) = msg.rsplit_once(", expected ") {
+        // rsplit: a quoted value may itself contain ", expected ".
+        let expected = expected.split(" at line ").next().unwrap_or(expected);
+        detail.push_str(&format!(" (expected {expected})"));
+    }
+    if e.line() > 0 {
+        detail.push_str(&format!(" at line {} column {}", e.line(), e.column()));
+    }
+    detail
 }
 
 fn map_error(status: StatusCode, path: &str, body: &[u8]) -> BunnyError {
@@ -280,6 +309,50 @@ fn backoff(attempt: u32) -> Duration {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
+    fn decode_err<T: DeserializeOwned + std::fmt::Debug>(v: Value) -> String {
+        match decode::<T>(v).unwrap_err() {
+            BunnyError::Decode(detail) => detail,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[test]
+    fn decode_error_omits_response_values() {
+        #[derive(Debug, Deserialize)]
+        #[allow(dead_code)]
+        struct M {
+            #[serde(rename = "Id")]
+            id: u64,
+        }
+        let detail = decode_err::<M>(json!({"Id": "SENTINEL-VALUE, expected x"}));
+        assert!(!detail.contains("SENTINEL"), "{detail}");
+        assert_eq!(
+            detail,
+            "JSON does not match the expected shape (expected u64)"
+        );
+
+        let detail = decode_err::<M>(json!({}));
+        assert_eq!(
+            detail,
+            "JSON does not match the expected shape (missing field `Id`)"
+        );
+
+        let detail = decode_err::<Vec<u64>>(json!("SENTINEL-VALUE"));
+        assert!(!detail.contains("SENTINEL"), "{detail}");
+    }
+
+    #[test]
+    fn decode_error_on_invalid_json_keeps_position_only() {
+        let e = serde_json::from_slice::<Value>(br#"{"Secret": "SENTINEL" oops}"#).unwrap_err();
+        let detail = decode_detail(&e);
+        assert!(!detail.contains("SENTINEL"), "{detail}");
+        assert!(
+            detail.starts_with("invalid JSON at line 1 column"),
+            "{detail}"
+        );
+    }
 
     // covers: REQ-CLI-02
     #[test]
