@@ -1,6 +1,6 @@
 # T02 — Runtime core: config, client, server, stdio, harness
 
-> **Status:** review  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
+> **Status:** changes-requested  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor se possível; senão A em outra sessão
 
@@ -156,6 +156,74 @@ rodada 1:
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 2 — 2026-10-14 — claude-opus-5-5 / Anthropic (nível A, outra sessão)
+**Veredito:** changes-requested
+**Gate:** verde (`fmt --check`, `clippy --workspace --all-targets -D warnings`, `test --workspace`:
+24 unit + 14 `tests/core.rs` + 1 `tests/e2e_stdio.rs`), rodado pelo revisor em `4f1666f`.
+
+**Verificado:** B1 (T00 `done`); B2 (diff `f56b776...HEAD` ⊆ arquivos possuídos + arquivo da task;
+`4f1666f` toca só `main.rs`, `client/mod.rs`, `model/redact.rs`, `tests/core.rs` e o arquivo da
+task); B3 (sem `Cargo.*`); B15 ok. Itens da rodada 1:
+- B12 rmcp — **parcial** (ver bloqueante abaixo). Reproduzido à mão com stdio real + `tools/call`
+  com argumento `SENTINEL-PEM-4242`, binário de `6335917` vs `4f1666f`: antes `trace` → 2×,
+  `debug` → 1×; depois 0× com `trace`, `debug`, `info`, `rmcp=trace`, `warn,rmcp=trace`,
+  `rmcp::handler=trace`. Stdout nunca contém o sentinela.
+- B12/C5 bool/número — resolvido via **CR-1** (caminho aceito na rodada 1).
+- N4 cadeia `source()` — ok (`network_detail`, URL removida, sem repetição; teste cobre).
+- `Content-Length: 0` em POST/DELETE sem body — ok (teste `bodiless_post_and_delete_send_content_length_zero`).
+- Timeout de conexão → `Network` — ok (`is_timeout() && !is_connect()`).
+- `EXACT` case-insensitive — ok (`exact_keys_ignore_case`).
+- `Decode` → registrado como CR-3. N3 ok (log da rodada 2 claro).
+
+**Bloqueantes:**
+- B12 `src/main.rs:53-63` — o limite `add_directive("rmcp=info")` **não vale "whatever RUST_LOG
+  says"** como diz o comentário: no `EnvFilter` a diretiva de alvo **mais específico** vence, e
+  diretivas de span também abrem os eventos. Reproduzido com o sentinela em `4f1666f`:
+  `RUST_LOG=rmcp::service=trace` → 2×, `rmcp::service=debug` → 1×,
+  `trace,rmcp::service=trace` → 2×, `[serve_inner]=trace` → 2× (o PEM volta a stderr). É
+  exatamente o que alguém faria para depurar o protocolo, e `main.rs` congela após T02.
+  Efeito colateral: como a diretiva é **adicionada**, ela também **eleva** o rmcp para `info`
+  quando o usuário não pediu — sem `RUST_LOG` (padrão `warn`) stderr passa de 1 para 6 linhas por
+  sessão, e `RUST_LOG=off` deixa de silenciar (6 linhas; antes 0).
+  Correção sugerida (sem dependência nova; `fmt` já habilita `registry`): manter o `EnvFilter` do
+  usuário intacto e aplicar um **segundo filtro por layer** que só corta, nunca abre:
+  ```rust
+  let rmcp_cap = tracing_subscriber::filter::filter_fn(|m| {
+      !(m.target().starts_with("rmcp") && *m.level() > tracing::Level::INFO)
+  });
+  tracing_subscriber::registry()
+      .with(fmt::layer().with_writer(std::io::stderr).with_filter(env_filter).with_filter(rmcp_cap))
+      .init();
+  ```
+  Protótipo compilado numa cópia descartável (clippy `-D warnings` limpo): sentinela 0× em
+  `trace`, `debug`, `rmcp=trace`, `rmcp::service=trace`, `trace,rmcp::service=trace`,
+  `[serve_inner]=trace`; sem `RUST_LOG` → 1 linha e `off` → 0 linhas (iguais a `6335917`).
+  Atualizar o comentário e o log do agente.
+
+**Não bloqueantes:**
+- CR-1 — texto diz "as chaves exatas de C3 continuam redigidas em qualquer tipo", mas
+  `is_sensitive` retorna `false` para `null` antes de checar `EXACT` (`redact.rs:47`). Inofensivo
+  (nulo não carrega segredo); ajustar a redação da CR para "…exceto valores booleanos, numéricos
+  ou nulos (nulo nunca é redigido)".
+- `src/model/redact.rs` **não** está na lista de congelados de C7, mas nenhuma outra task o possui —
+  na prática só muda por CR aplicada pelo orquestrador. Mesma situação de fato para CR-2.
+
+**Parecer sobre as CRs (para o orquestrador):**
+- **CR-1 — aceitar.** Comportamento sensato e já implementado/testado; ajustar o texto conforme
+  acima ao aplicar em `specs/constitution.md`.
+- **CR-2 — aceitar e implementar já, na rodada 3 de T02.** Conferido em
+  `specs/api/bunny-core.openapi.json`: os únicos nomes de propriedade com
+  `apikey|accesskey|securitykey` são `ApiKey`, `ApiAccessKey`, `ReadOnlyApiKey`, `SecurityKey`,
+  `ZoneSecurityKey` (todos segredos); `AccessKey`/`ScopedApiKey` são só nomes de security scheme
+  — sem falso positivo, e bool/número já ficam isentos (CR-1). Custo: uma linha em `CONTAINS` +
+  um teste. Como T02 já volta ao implementador pelo bloqueante, decidir CR-2 antes da rodada 3 evita
+  uma CR futura num arquivo sem dono.
+- **CR-3 — aceitar, prioridade baixa.** Risco real pequeno (projeções tolerantes raramente
+  desserializam campos sensíveis). Atenção: `client/mod.rs`/`client/error.rs` são congelados (C7)
+  e T92 não os possui; se ficar para T92, a mudança precisa ser aplicada pelo orquestrador. Se
+  barato, pode entrar na rodada 3 (ex.: `Decode` guardar só a categoria/caminho do erro serde, sem
+  o valor citado).
 
 ### Rodada 1 — 2026-10-14 — claude-opus-5-5 / Anthropic (nível A, outra sessão)
 **Veredito:** changes-requested
