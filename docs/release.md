@@ -28,7 +28,7 @@ O workflow `.github/workflows/release.yml` utiliza os seguintes segredos:
 
 | Segredo | Origem | Descrição |
 |---|---|---|
-| `GITHUB_TOKEN` | Automático (Actions) | Usado para criar a GitHub Release, anexar artefatos e autenticar no GitHub Container Registry (`ghcr.io`). Requer permissões `contents: write` e `packages: write` configuradas no workflow. |
+| `GITHUB_TOKEN` | Automático (Actions) | Usado para criar a GitHub Release, anexar artefatos e autenticar no GitHub Container Registry (`ghcr.io`). Requer permissões `contents: write` (global) e `packages: write` (no job `publish-docker`) configuradas no workflow. |
 | `HOMEBREW_TAP_TOKEN` | Manual (Settings → Secrets) | Personal Access Token (PAT) clássico com escopo `repo`, ou Fine-grained PAT com permissão de escrita em `Contents` no repositório do tap (`OWNER/homebrew-tap`). Permite que o workflow faça commit da fórmula atualizada no repositório do tap. |
 
 > [!NOTE]

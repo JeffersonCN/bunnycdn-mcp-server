@@ -1,6 +1,6 @@
 # T80 — Release multi-plataforma, Homebrew e Docker
 
-> **Status:** changes-requested  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T80-distribution`  ·  **Atualizado:** 2026-10-14
+> **Status:** review  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T80-distribution`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível A · outro fornecedor (segredos e publicação)
 
@@ -44,6 +44,14 @@ em `Cargo.toml`), `.github/workflows/release.yml`, `docs/release.md`.
 - Criado `docs/release.md` documentando o processo de release, segredos necessários (`HOMEBREW_TAP_TOKEN`, `GITHUB_TOKEN`), publicação no GHCR, e instruções de instalação/execução.
 - Descoberta: `cargo-dist` (via `axoproject`) exige que `package.repository` esteja presente no `Cargo.toml` para que o modo GitHub CI e a fórmula Homebrew funcionem, e que `xtask/Cargo.toml` declare `[package.metadata.dist] dist = false` para não tentar empacotar o xtask. Como `Cargo.toml` é arquivo congelado (C7), foi registrado como CR-01; com o contorno local da CR-01 aplicado, `dist plan` lista com sucesso os 4 targets e instaladores shell/homebrew. Os arquivos congelados foram mantidos intocados no commit para preservar B3.
 - Gate executado e aprovado: `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`.
+- 2026-10-14: Correções solicitadas na Rodada 1 de revisão aplicadas:
+  - Removido `packages: write` do bloco global de permissões em `.github/workflows/release.yml` (mantido apenas no job `publish-docker`).
+  - Fixadas todas as 5 ações `docker/*` em `.github/workflows/release.yml` por SHAs completos de commit com comentários de versão (# vX.Y.Z) obtidos via `git ls-remote` / `gh api` (`docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0`, `docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0`, `docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0`, `docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0`, `docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2`).
+  - Adicionado `persist-credentials: false` no checkout do job `publish-docker` (N2).
+  - Atualizado `Dockerfile` para `FROM rust:1.99.0-alpine@sha256:0cce0a5e0e8ba67b455257a3a02a1d99005f382748789d6464460028810f1627` e `cargo build --release --locked --bin bunnycdn-mcp` para build determinístico/reprodutível.
+  - Validado `docker build .` localmente com imagem funcional de 295 kB (836 kB em disco).
+  - Atualizada CR-01 incluindo `homepage` e registrando aprovação do orquestrador para aplicação no merge.
+  - Gate executado e aprovado.
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
@@ -88,18 +96,20 @@ só no job do tap; nenhum segredo ecoado; `publish-docker` com permissões próp
   arquivo gerado tem custo de manutenção — fica a critério.
 
 ## Change requests
-### CR-01: Adicionar repository ao Cargo.toml e ignorar xtask no dist
-- **Motivo:** O `cargo-dist` 0.33.0 (e biblioteca `axoproject`) valida que todos os pacotes distribuíveis em um workspace com CI GitHub contenham o campo `repository = "https://github.com/..."` em seus manifestos (`Cargo.toml`), e que crates auxiliares do workspace como `xtask` declarem `dist = false`. Sem isso, `dist plan` e a geração do instalador Homebrew falham informando `Github CI support requires you to specify the URL of your repository`.
+### CR-01: Adicionar repository e homepage ao Cargo.toml e ignorar xtask no dist
+- **Status:** Aceita pelo orquestrador (a ser aplicada no merge).
+- **Motivo:** O `cargo-dist` 0.33.0 (e biblioteca `axoproject`) valida que todos os pacotes distribuíveis em um workspace com CI GitHub contenham o campo `repository = "https://github.com/..."` em seus manifestos (`Cargo.toml`), e que crates auxiliares do workspace como `xtask` declarem `dist = false`. Sem isso, `dist plan` e a geração do instalador Homebrew falham informando `Github CI support requires you to specify the URL of your repository`. O campo `homepage` atende à recomendação de metadados para a fórmula Homebrew.
 - **Arquivos afetados:** `Cargo.toml` e `xtask/Cargo.toml`.
 - **Diff proposto:**
 ```diff
 diff --git a/Cargo.toml b/Cargo.toml
 --- a/Cargo.toml
 +++ b/Cargo.toml
-@@ -10,2 +10,3 @@
+@@ -10,2 +10,4 @@
  description = "Lightweight MCP server for operating the bunny.net CDN"
  license = "MIT OR Apache-2.0"
 +repository = "https://github.com/OWNER/bunnycdn-mcp"
++homepage = "https://github.com/OWNER/bunnycdn-mcp"
  publish = false
 diff --git a/xtask/Cargo.toml b/xtask/Cargo.toml
 --- a/xtask/Cargo.toml

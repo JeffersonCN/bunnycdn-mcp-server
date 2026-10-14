@@ -1,6 +1,6 @@
 # Multi-stage build for bunnycdn-mcp
-# Builder stage uses rust:alpine with musl libc
-FROM rust:alpine AS builder
+# Builder stage uses rust:1.99.0-alpine with musl libc
+FROM rust:1.99.0-alpine@sha256:0cce0a5e0e8ba67b455257a3a02a1d99005f382748789d6464460028810f1627 AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY xtask ./xtask
 COPY src ./src
 
 # Build static release binary (stripped per [profile.release])
-RUN cargo build --release --bin bunnycdn-mcp
+RUN cargo build --release --locked --bin bunnycdn-mcp
 
 # Final stage: minimal scratch container
 FROM scratch
