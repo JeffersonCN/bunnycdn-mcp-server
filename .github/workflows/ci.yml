@@ -30,5 +30,3 @@ jobs:
       - run: cargo test --workspace
       - name: Generated code is up to date
         run: cargo xtask codegen --check
-        # TODO(T01): remove once the generator exists (change request in specs/tasks/T01-codegen.md).
-        continue-on-error: true
