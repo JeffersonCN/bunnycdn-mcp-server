@@ -92,6 +92,8 @@ Prompt mínimo de implementador: *"Você é implementador da task T20. Siga AGEN
 specs/README.md."* Revisor: *"Você é revisor da task T20. Siga AGENTS.md e
 specs/review-checklist.md."*
 
+**Maestro:** roteiro, IDs dos agentes e comandos `maestro-cli` em [docs/maestro.md](../docs/maestro.md).
+
 **Claude Code:** o subagente [`task-implementer`](../.claude/agents/task-implementer.md) executa uma task de ponta a
 ponta. Exemplo para a Onda 1 (após T02 em `main`):
 
