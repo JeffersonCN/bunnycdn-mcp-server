@@ -5,7 +5,7 @@ pub mod error;
 use std::hash::{BuildHasher, RandomState};
 use std::time::Duration;
 
-use reqwest::header::{ACCEPT, HeaderMap, HeaderValue, RETRY_AFTER};
+use reqwest::header::{ACCEPT, CONTENT_LENGTH, HeaderMap, HeaderValue, RETRY_AFTER};
 use reqwest::{Method, StatusCode};
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
@@ -103,20 +103,26 @@ impl BunnyClient {
 
         loop {
             let mut req = self.http.request(method.clone(), url.clone());
-            if let Some(body) = body {
-                req = req.json(body);
+            match body {
+                Some(body) => req = req.json(body),
+                // Without a body reqwest sends no Content-Length, and HTTP/1.1 servers such as
+                // IIS/HTTP.sys answer 411 to a bodiless POST/DELETE.
+                None if method != Method::GET => req = req.header(CONTENT_LENGTH, 0),
+                None => {}
             }
 
             let resp = match req.send().await {
                 Ok(resp) => resp,
-                Err(e) if e.is_timeout() => return Err(BunnyError::Timeout),
+                // A connect timeout means nothing was sent: treat it as a network error, not as
+                // the "may or may not have been applied" request timeout.
+                Err(e) if e.is_timeout() && !e.is_connect() => return Err(BunnyError::Timeout),
                 Err(e) => {
                     if retry_failures && attempt < MAX_RETRIES {
                         self.sleep(backoff(attempt)).await;
                         attempt += 1;
                         continue;
                     }
-                    return Err(BunnyError::Network(e.without_url().to_string()));
+                    return Err(BunnyError::Network(network_detail(e)));
                 }
             };
 
@@ -140,7 +146,7 @@ impl BunnyClient {
                 if e.is_timeout() {
                     BunnyError::Timeout
                 } else {
-                    BunnyError::Network(e.without_url().to_string())
+                    BunnyError::Network(network_detail(e))
                 }
             })?;
 
@@ -201,6 +207,23 @@ impl BunnyClient {
             tokio::time::sleep(delay).await;
         }
     }
+}
+
+/// reqwest's own message is just "error sending request"; the actionable cause (DNS, refused
+/// connection, TLS) lives in the `source()` chain. The URL is stripped (it may carry query data).
+fn network_detail(e: reqwest::Error) -> String {
+    let e = e.without_url();
+    let mut detail = e.to_string();
+    let mut source = std::error::Error::source(&e);
+    while let Some(cause) = source {
+        let text = cause.to_string();
+        if !detail.contains(&text) {
+            detail.push_str(": ");
+            detail.push_str(&text);
+        }
+        source = cause.source();
+    }
+    detail
 }
 
 fn decode<T: DeserializeOwned>(v: Value) -> Result<T, BunnyError> {

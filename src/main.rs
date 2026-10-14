@@ -50,11 +50,16 @@ async fn main() -> ExitCode {
     let cli = Cli::parse();
 
     // stdout carries the stdio protocol: logs go to stderr only (C3, REQ-CFG-06).
+    let mut filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
+    // rmcp logs the full `Debug` of every request at debug/trace, including `tools/call`
+    // arguments (PEMs, keys). Cap it at info whatever RUST_LOG says (C3): a per-target directive
+    // added last wins over the user's global level and over a user `rmcp=trace`.
+    if let Ok(cap) = "rmcp=info".parse() {
+        filter = filter.add_directive(cap);
+    }
     tracing_subscriber::fmt()
         .with_writer(std::io::stderr)
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn")),
-        )
+        .with_env_filter(filter)
         .init();
 
     install_crypto_provider();

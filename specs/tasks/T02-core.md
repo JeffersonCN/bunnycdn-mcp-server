@@ -1,6 +1,6 @@
 # T02 — Runtime core: config, client, server, stdio, harness
 
-> **Status:** changes-requested  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
+> **Status:** review  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor se possível; senão A em outra sessão
 
@@ -126,6 +126,34 @@ Teste: `let (mock, srv) = common::setup().await;` + `Mock::given(...).and(header
 **Não verificado:** `npx @modelcontextprotocol/inspector --cli` (handshake coberto pelo e2e e
 pelo teste manual via stdin acima).
 
+### 2026-10-14 — claude-opus-5-5 — rodada 2 → review
+**Resultado:** gate verde (`fmt --check`, `clippy --workspace --all-targets -D warnings`,
+`test --workspace`: 24 unit + 14 `tests/core.rs` + 1 `tests/e2e_stdio.rs`). Responde à Revisão
+rodada 1:
+
+- **B12 rmcp (bloqueante):** `main.rs` acrescenta sempre `rmcp=info` ao `EnvFilter` (do
+  `RUST_LOG` ou `warn`), sem `unwrap`, com comentário. Verificado à mão com stdio real e
+  `tools/call` com argumento sentinela `SENTINEL-PEM-4242`: **antes** (HEAD anterior,
+  `RUST_LOG=trace`) o sentinela aparecia 2× em stderr; **depois**, 0× com `RUST_LOG=trace`,
+  `debug`, `rmcp=trace` e `warn,rmcp=trace` (a diretiva adicionada por último substitui a do
+  usuário para o mesmo alvo). Em `info` o rmcp só loga inicialização (`peer_info` do cliente),
+  notificações e o erro de resposta — sem `arguments`.
+- **B12/C5 redação bool/número (bloqueante):** mantido o comportamento e registrada a **CR-1**
+  (texto de C3). Doc de `redact()` aponta para a CR.
+- **N4:** erros de rede concatenam a cadeia `source()` (após `without_url()`, sem repetir trechos).
+  Ex.: `Network error talking to Bunny API: error sending request: client error (Connect): tcp
+  connect error: Connection refused (os error 61)` / `…: dns error: …`. Teste em
+  `network_error_on_get_is_retried_then_reported` (mensagem mais longa que a genérica, sem URL).
+- **Content-Length:** POST/DELETE sem body enviam `Content-Length: 0` explícito (o hyper omite o
+  cabeçalho com corpo vazio — `body(Vec::new())` não bastou, conferido com `nc`). GET segue sem.
+  Teste novo `bodiless_post_and_delete_send_content_length_zero`.
+- **Timeout de conexão:** `is_timeout() && is_connect()` vai para o caminho de erro de rede
+  (`Network`, repetido só em GET/DELETE — REQ-CLI-03 diz "somente", então POST não repete mesmo
+  sabendo que nada foi enviado). `Timeout` fica só para timeout de requisição/corpo.
+- **EXACT case-insensitive:** `eq_ignore_ascii_case`; teste `exact_keys_ignore_case`.
+- **Viraram CR (só registro):** CR-2 (`apikey|accesskey|securitykey` em C3) e CR-3
+  (`BunnyError::Decode` pode citar valores da resposta → T92).
+
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
@@ -187,3 +215,18 @@ uma chamada real ao cliente, a API key **não** aparece em stderr (`set_sensitiv
   `int_or_string`, exit 2).
 
 ## Change requests
+CR-1: `specs/constitution.md` (C3) · trocar "e qualquer campo cujo nome contenha `Secret`,
+`Password`, `Token` ou `PrivateKey`" por "…`PrivateKey`, exceto quando o valor é booleano,
+numérico ou nulo" · flags/contadores como `EnableTokenAuthentication` e
+`MonthlyAiGateway*Tokens` não carregam segredo e são úteis na saída; `model/redact.rs` já se
+comporta assim (as chaves exatas de C3 continuam redigidas em qualquer tipo) · aberta
+
+CR-2: `specs/constitution.md` (C3) · acrescentar `ApiKey`, `AccessKey` e `SecurityKey` às
+substrings sensíveis (`apikey|accesskey|securitykey`) · a spec da API tem `ApiKey`,
+`ApiAccessKey`, `ReadOnlyApiKey` (VideoLibraryModel) e `SecurityKey`
+(ResetPullZoneSecurityKeyModel), não cobertos por C3; fora do escopo atual das tools, mas
+`model/redact.rs` é congelado após T02 — aplicar CR exige mudar `CONTAINS` · aberta
+
+CR-3: `src/client/mod.rs` / `src/client/error.rs` (para T92) · `BunnyError::Decode` carrega a
+mensagem do serde, que pode citar valores da resposta (`invalid type: string "…"`); avaliar
+truncar/omitir o valor ou aplicar redação · risco baixo com modelos tolerantes · aberta

@@ -215,6 +215,13 @@ async fn network_error_on_get_is_retried_then_reported() {
             .starts_with("Network error talking to Bunny API:")
     );
     assert!(!err.to_tool_message().contains(TEST_KEY));
+    // The cause from the source chain is included, not just "error sending request".
+    let msg = err.to_tool_message();
+    assert!(
+        msg.len() > "Network error talking to Bunny API: error sending request".len(),
+        "{msg}"
+    );
+    assert!(!msg.contains("127.0.0.1:1/pullzone"), "{msg}");
 }
 
 // covers: REQ-CLI-05
@@ -256,6 +263,33 @@ async fn invalid_json_is_decode_error() {
 
     let err = client.get::<Value>("/pullzone", &[]).await.unwrap_err();
     assert!(matches!(err, BunnyError::Decode(_)), "{err:?}");
+}
+
+#[tokio::test]
+async fn bodiless_post_and_delete_send_content_length_zero() {
+    let (mock, client) = setup_client().await;
+    Mock::given(method("POST"))
+        .and(path("/pullzone/1/purgeCache"))
+        .and(header("Content-Length", "0"))
+        .respond_with(ResponseTemplate::new(204))
+        .expect(1)
+        .mount(&mock)
+        .await;
+    Mock::given(method("DELETE"))
+        .and(path("/pullzone/1"))
+        .and(header("Content-Length", "0"))
+        .respond_with(ResponseTemplate::new(204))
+        .expect(1)
+        .mount(&mock)
+        .await;
+
+    let v: Value = client
+        .post("/pullzone/1/purgeCache", &[], None)
+        .await
+        .unwrap();
+    assert_eq!(v, Value::Null);
+    let v: Value = client.delete("/pullzone/1", None).await.unwrap();
+    assert_eq!(v, Value::Null);
 }
 
 #[tokio::test]

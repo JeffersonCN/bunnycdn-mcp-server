@@ -4,7 +4,7 @@ use serde_json::Value;
 
 pub const REDACTED: &str = "[redacted]";
 
-/// Exact key names that are always sensitive.
+/// Key names that are always sensitive (compared case-insensitively).
 const EXACT: &[&str] = &[
     "ZoneSecurityKey",
     "AWSSigningKey",
@@ -22,7 +22,8 @@ const CONTAINS: &[&str] = &["secret", "password", "token", "privatekey"];
 /// Recursively replaces sensitive values with `"[redacted]"`.
 ///
 /// Booleans, numbers and nulls under substring-matched keys are kept: they cannot carry a
-/// secret, and keys like `EnableTokenAuthentication` are useful configuration flags.
+/// secret, and keys like `EnableTokenAuthentication` are useful configuration flags (CR-1 on T02
+/// proposes this wording for C3).
 pub fn redact(v: Value) -> Value {
     match v {
         Value::Object(map) => Value::Object(
@@ -46,7 +47,7 @@ fn is_sensitive(key: &str, value: &Value) -> bool {
     if value.is_null() {
         return false;
     }
-    if EXACT.contains(&key) {
+    if EXACT.iter().any(|name| name.eq_ignore_ascii_case(key)) {
         return true;
     }
     if matches!(value, Value::Bool(_) | Value::Number(_)) {
@@ -112,6 +113,15 @@ mod tests {
                 ],
                 "Nested": {"Deeper": [{"Token": REDACTED, "Keep": "x"}]}
             })
+        );
+    }
+
+    #[test]
+    fn exact_keys_ignore_case() {
+        let v = redact(json!({"zoneSecurityKey": "a", "CERTIFICATE": "b", "awssigningkey": "c"}));
+        assert_eq!(
+            v,
+            json!({"zoneSecurityKey": REDACTED, "CERTIFICATE": REDACTED, "awssigningkey": REDACTED})
         );
     }
 
