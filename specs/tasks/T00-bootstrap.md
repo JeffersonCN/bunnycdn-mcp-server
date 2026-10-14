@@ -1,6 +1,6 @@
 # T00 — Bootstrap do workspace + CI
 
-> **Status:** review  ·  **Agente:** claude-opus-5-5 (sessão principal)  ·  **Branch:** `task/T00-bootstrap`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** claude-opus-5-5 (sessão principal)  ·  **Branch:** `task/T00-bootstrap`  ·  **Atualizado:** 2026-10-14
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
