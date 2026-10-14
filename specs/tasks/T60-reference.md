@@ -1,6 +1,6 @@
 # T60 — Regiões e países
 
-> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T60-reference`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
