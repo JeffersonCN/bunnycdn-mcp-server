@@ -1,6 +1,6 @@
 # T30 — Hostnames & SSL
 
-> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T30-hostname)  ·  **Branch:** `task/T30-hostname`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T30-hostname)  ·  **Branch:** `task/T30-hostname`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
@@ -51,5 +51,11 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — gemini-3.8-flash-high (Antigravity rev-T30)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`)
+**Bloqueantes:** nenhum
+**Não bloqueantes:** nenhum
 
 ## Change requests
