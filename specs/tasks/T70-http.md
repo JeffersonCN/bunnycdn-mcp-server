@@ -1,6 +1,6 @@
 # T70 — Transporte Streamable HTTP
 
-> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (Maestro task/T70-http)  ·  **Branch:** `task/T70-http`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (Maestro task/T70-http)  ·  **Branch:** `task/T70-http`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -57,5 +57,31 @@ Fonte do rmcp 3.5: `transport/streamable_http_server/tower.rs` (`StreamableHttpS
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — rev-T70 / Google Antigravity (nível A)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`: 99 testes passando), rodado pelo revisor.
+
+**Verificado:**
+- **B1:** Dependência T02 está `done` (`specs/tasks/T02-core.md`).
+- **B2:** Apenas arquivos possuídos (`src/transport/http.rs`, `tests/http.rs`) e o arquivo da task (`specs/tasks/T70-http.md`) foram alterados em relação a `main`.
+- **B3:** Arquivos congelados (`Cargo.toml`, `Cargo.lock`, `src/main.rs`, etc.) intactos.
+- **B4:** Gate verde completo rodado no ambiente do revisor.
+- **Critérios de aceite reproduzidos:**
+  - MCP Inspector conectou em `http://127.0.0.1:18082/mcp` via `npx @modelcontextprotocol/inspector --cli --server-url http://127.0.0.1:18082/mcp --method tools/list` retornando a listagem completa de tools.
+  - Endpoint `GET /healthz` retorna `200 OK` com payload `ok`.
+  - WARN de transporte sem autenticação emitido em stderr ao iniciar com `--listen 0.0.0.0:18081` (`WARN bunnycdn_mcp: HTTP transport has NO authentication; anyone who can reach 0.0.0.0:18081 controls your Bunny account.`); ausente com loopback (`127.0.0.1:18081`).
+  - Nenhuma alteração em `src/main.rs`.
+- **Requisitos do transporte:**
+  - **REQ-TR-05:** Validação de `Host` rejeita `Host: evil.example` com 403 Forbidden e aceita hosts configurados em `allowed_hosts`.
+  - **REQ-TR-06:** Encerramento gracioso em ≤ 5 s sob SIGINT/SIGTERM com timeout rígido.
+  - **C1:** Binário release compilado com 3.8 MB (limite ≤ 8 MB).
+  - **B12:** Sem vazamento de segredos em logs, erros ou saídas.
+  - **B14:** Sem rede externa em testes de integração (`tests/http.rs`).
+  - **B15:** Sem `unwrap`/`expect`/`unsafe` fora de testes em `src/transport/http.rs`.
+
+**Bloqueantes:** nenhum.
+
+**Não bloqueantes:** nenhum.
 
 ## Change requests
