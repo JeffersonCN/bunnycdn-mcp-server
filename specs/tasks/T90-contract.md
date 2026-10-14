@@ -1,6 +1,6 @@
 # T90 — Teste de contrato `tools/list` + orçamento de tokens
 
-> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T90-contract)  ·  **Branch:** `task/T90-contract`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T90-contract)  ·  **Branch:** `task/T90-contract`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
@@ -69,6 +69,54 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — claude-opus-5-5 / Anthropic
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`, rodado pelo revisor em `5727bfc`)
+**Bloqueantes:** nenhum.
+- B1 T11, T12, T20, T30, T40, T50, T60 = `done`.
+- B2/B3 diff vs `main` (`2a997f0`): `specs/tasks/T90-contract.md`, `tests/contract.rs`,
+  `tests/e2e_stdio.rs`, `tests/snapshots/contract__tools_list.snap` — todos possuídos (e2e via CR);
+  nenhum congelado tocado.
+- Entregável 1 conferido de forma independente (script que extrai cabeçalho `## TOOL-… · notação`
+  e `**Descrição:**` de `specs/tools/*.md`): 24/24 IDs, nomes e descrições idênticos; H/D/I batem
+  com R/W/W·I/X/X·I; `open_world_hint = true` em todas. O teste falha em tool faltando, sobrando,
+  duplicada, descrição divergente, anotação divergente ou schema sem `additionalProperties: false`.
+- Entregável 2: snapshot ordenado por nome, sem `.snap.new` pendente. Args do snapshot conferidos
+  contra as tabelas/linhas "Args:" dos 7 contratos: nomes e obrigatoriedade iguais em todas as
+  24 tools (inclui `list`/`action` em AC-01 e `kind` em ST-02 como obrigatórios).
+- Entregável 3 — medição honesta: recontei o JSON compacto do snapshot = **17.628 B**, idêntico ao
+  log. Mede `Vec<Tool>` serializado (o conteúdo de `result.tools`); o envelope JSON-RPC (~50 B)
+  fica de fora, irrelevante. Decomposição que reproduzi: `inputSchema` 11.665 B, `annotations`
+  2.130 B, descrições das tools 1.874 B, `$schema` presente nas 24. REQ-NF-02 **não é atendido**
+  (+43%), mas o próprio entregável prevê o caminho "abrir CR + listar ofensores", e isso foi feito.
+- Entregável 4 / CR-01 — **aceitável**: `tests/e2e_stdio.rs` não é congelado (C7), é de T02
+  (`done`), cujo comentário original já dizia "T90 updates this to the full contract count"; o
+  arquivo da T90 o lista como possuído via CR; o diff é mínimo (2 linhas) e só restaura a asserção
+  exata que a CR-01 de T20 relaxou para `<= 24` durante a Wave 1. Redundante com
+  `tests/contract.rs`, mas inofensivo e protege o e2e de regressão silenciosa.
+
+**Não bloqueantes:**
+- N1 `tests/contract.rs` `contract_tools_list_token_budget`: comentário diz "current 18 KB envelope"
+  mas o assert usa `20 * 1024`. O teto de 20 KB deixa ~2,8 KB de regressão passar sem alarme e o
+  teste chamado "token_budget" fica verde com o requisito violado. Sugestão (pode ir junto com a
+  CR-02): teto apertado no valor atual (ex.: 18.000 B) + um teste `#[ignore = "REQ-NF-02 pendente,
+  ver CR-02"]` com `<= 12 * 1024`, para a dívida aparecer como "1 ignored" no `cargo test`.
+- N1 o teste de snapshot `tools_list` está marcado `// covers: REQ-NF-02`; deveria ser
+  `REQ-OUT-05` / entregável 2.
+- N2 o teste de contrato não verifica nomes/obrigatoriedade dos args; hoje só o snapshot os
+  congela (derivado da implementação). Conferi à mão e está conforme; um `required`/`properties`
+  na tabela estática fecharia a lacuna no futuro.
+- N4 / **para o orquestrador — CR-02**: (a) está endereçada a T92, mas T92 não possui
+  `src/tools/*.rs` nem `specs/` — sem dono, precisa ser atribuída pelo orquestrador; (b) encurtar
+  descrições não basta: as descrições das tools somam só 1.874 B e o estouro é de 5.340 B; o peso
+  está nos schemas (`$schema` ×24 ≈ 1,3 KB, `annotations` ≈ 2,1 KB, `$defs`/`oneOf` de
+  edgerule/access, `["T","null"]` de `Option`). A decisão real é schema-level (setting do schemars
+  / transform em `src/tools/util.rs`, congelado) **ou** revisar REQ-NF-02; ela deve ser tomada
+  antes do release, pois hoje REQ-NF-02 segue não atendido.
+- Contrato: a notação `R` não define `I`. A implementação usa I=true em ER-01/RF-01/RF-02 e
+  I=false em PZ-01/02/06, ST-01/02. Inofensivo (MCP ignora `idempotentHint` quando
+  `readOnlyHint=true`), mas vale padronizar em `specs/tools/README.md`.
 
 ## Change requests
 ### CR-01: Atualizar asserção de tools.len() para 24 em tests/e2e_stdio.rs
