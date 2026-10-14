@@ -1,6 +1,6 @@
 # T01 — Codegen da spec → `src/generated.rs`
 
-> **Status:** review  ·  **Agente:** claude-code (sonnet 5.5)  ·  **Branch:** `task/T01-codegen`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** claude-code (sonnet 5.5)  ·  **Branch:** `task/T01-codegen`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível B · outro fornecedor
 
@@ -52,6 +52,17 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — gemini-3.8-flash-high (Google Antigravity)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`)
+**Bloqueantes:**
+- nenhum
+**Não bloqueantes:**
+- nenhum
+**Avaliação de Change Requests:**
+- **CR-T01-1 (ci.yml):** Aprovada (recomendada ao orquestrador). O comando `cargo xtask codegen --check` é funcional e passa sem erros. A remoção de `continue-on-error: true` no workflow de CI é segura e recomendada no merge para `main`.
+- **CR-T01-2 (Cargo.lock):** Aprovada (recomendada ao orquestrador). O pacote `xtask` passou a utilizar `serde_json`, que já existia no workspace (`Cargo.lock`), não adicionando crates externas novas. A implementação de SHA-256 manual em `xtask/src/sha256.rs` evitou a dependência de `sha2`. O diff em `Cargo.lock` restringe-se à entrada de dependência de `xtask` e é inevitável.
 
 ## Change requests
 - **CR-T01-1 (ci.yml, congelado):** remover `continue-on-error: true` (e o TODO) do passo
