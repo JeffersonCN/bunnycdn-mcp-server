@@ -1,6 +1,6 @@
 # T11 — Pull zones: escrita
 
-> **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T11-pullzone-write`  ·  **Atualizado:** —
+> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T11-pullzone-write)  ·  **Branch:** `task/T11-pullzone-write`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível A · outro fornecedor
 
@@ -22,12 +22,20 @@ Os mesmos de T10 (herda a propriedade após T10 ser mergeada).
 3. Implementar TOOL-PZ-03, 04, 05, 07. Validação de settings via `generated::PULL_ZONE_SETTINGS` em função pura testável (`validate_settings(&Map) -> Result<Map, Vec<String>>`), com Levenshtein implementado localmente (sem crate).
 
 ## Critérios de aceite
-- [ ] Toda tool do contrato implementada e coberta.
-- [ ] Nenhum arquivo fora da lista acima foi alterado (`git diff --name-only main`).
-- [ ] Nenhum campo sensível na saída (C3); nenhuma resposta bruta sem `verbose` (C2).
-- [ ] Gate C6.
+- [x] Toda tool do contrato implementada e coberta.
+- [x] Nenhum arquivo fora da lista acima foi alterado (`git diff --name-only main`).
+- [x] Nenhum campo sensível na saída (C3); nenhuma resposta bruta sem `verbose` (C2).
+- [x] Gate C6.
 
 ## Log do agente
+- 2026-10-14: Implementação das tools de escrita de Pull Zones (T11):
+  - `bunny_pullzone_create` (TOOL-PZ-03): validação de nome regex `^[a-z0-9-]{3,}$`, validação de exclusividade mútua entre `origin_url` (com parse de URL http/https) e `storage_zone_id`, validação de proibição de chaves restritas em `settings` (`Name`, `OriginUrl`, `StorageZoneId`, `Type`, `OriginType`), suporte a tier standard e volume (Type 0 / 1), e suporte tanto a resposta `PullZoneModel` quanto a corpo vazio (`ok_unit` com hint de busca).
+  - `bunny_pullzone_update` (TOOL-PZ-04): validação de id e settings não vazio, validação pura via `validate_settings` usando `generated::PULL_ZONE_SETTINGS`, Levenshtein local (distância <= 3 para sugestões), case-normalization não-destrutiva, validação de tipos `FieldType`, conversão case-insensitive de enum por nome para código inteiro; se resposta vazia da API dispara `GET /pullzone/{id}` retornando `PullZoneSummary` com a chave `"updated"` ordenada.
+  - `bunny_pullzone_delete` (TOOL-PZ-05): `DELETE /pullzone/{id}` retornando `{"ok":true,"deleted_id":<id>}`.
+  - `bunny_pullzone_reset_security_key` (TOOL-PZ-07): `POST /pullzone/{id}/resetSecurityKey` com body `{SecurityKey}` ou `{}` se omitido, nunca ecoando a chave na resposta (C3).
+  - Validação pura testável `validate_settings` e `levenshtein` implementadas com testes unitários em `src/tools/pullzone.rs`.
+  - Testes wiremock cobrindo todos os cenários do contrato em `tests/pullzone.rs` com `// covers: TOOL-PZ-03`, `// covers: TOOL-PZ-04`, `// covers: TOOL-PZ-05`, `// covers: TOOL-PZ-07`.
+  - Gate C6 verificado com sucesso (`cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`).
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
