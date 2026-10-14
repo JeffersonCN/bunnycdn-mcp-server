@@ -1,6 +1,6 @@
 # T01 — Codegen da spec → `src/generated.rs`
 
-> **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T01-codegen`  ·  **Atualizado:** —
+> **Status:** review  ·  **Agente:** claude-code (sonnet 5.5)  ·  **Branch:** `task/T01-codegen`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível B · outro fornecedor
 
@@ -30,16 +30,31 @@
 5. xtask usa só `serde_json` + `sha2` (deps do xtask não afetam o binário). Documentar no log.
 
 ## Critérios de aceite
-- [ ] `EDGE_RULE_ACTION_TYPES.len() == 38`, `EDGE_RULE_TRIGGER_TYPES.len() == 14`.
-- [ ] `PULL_ZONE_SETTINGS.len() == 150` e ordenado (teste unitário em `src/generated.rs`? não —
+- [x] `EDGE_RULE_ACTION_TYPES.len() == 38`, `EDGE_RULE_TRIGGER_TYPES.len() == 14`.
+- [x] `PULL_ZONE_SETTINGS.len() == 150` e ordenado (teste unitário em `src/generated.rs`? não —
       teste em `xtask/tests/` lendo o arquivo gerado, ou `#[cfg(test)]` emitido pelo próprio codegen).
-- [ ] `lookup(EDGE_RULE_ACTION_TYPES, "setresponseheader") == Some(5)`.
-- [ ] Rodar codegen 2x produz arquivo idêntico.
-- [ ] Gate C6.
+- [x] `lookup(EDGE_RULE_ACTION_TYPES, "setresponseheader") == Some(5)`.
+- [x] Rodar codegen 2x produz arquivo idêntico.
+- [x] Gate C6.
 
 ## Log do agente
+- xtask usa só `serde_json`; `sha2` NÃO foi adicionada (não estava no `Cargo.lock` e a lista de deps é
+  congelada): SHA-256 implementado à mão em `xtask/src/sha256.rs` (testado com vetores conhecidos).
+  `SPEC_SHA256` confere com `dc0bb19c…f5df8`.
+- Tabelas de enum extras geradas para todo `$ref` enum dos settings (nome = schema em
+  SCREAMING_SNAKE, ex. `IP_FAMILY_POLICY`); as 6 do design mantêm os nomes fixos.
+  `oneOf` de 1 elemento desembrulhado; `PullZoneOptimizerClassModel`/`BunnyAiImageBlueprintModel` → `ObjectArray`.
+- `PULL_ZONE_SETTINGS` ordenado por bytes (`<`); `lookup` é linear case-insensitive (tabelas pequenas).
+- Testes (`table_sizes`, `settings_are_sorted`, `lookup_is_case_insensitive`) são emitidos pelo
+  próprio codegen em `src/generated.rs`; teste do SHA em `xtask/src/sha256.rs`. Codegen 2x idêntico.
+- Saída passa por `rustfmt --edition 2024` num arquivo temporário (sem tocar o projeto).
+- Clippy 1.99 exigiu `as_chunks` (estável desde 1.88, ok com o MSRV).
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests
+- **CR-T01-1 (ci.yml, congelado):** remover `continue-on-error: true` (e o TODO) do passo
+  `cargo xtask codegen --check` em `.github/workflows/ci.yml`; o gerador agora existe.
+- **CR-T01-2 (Cargo.lock, congelado):** `xtask` passou a depender de `serde_json` (já presente no
+  lock); o único diff é `dependencies = ["serde_json"]` na entrada do pacote `xtask`. Inevitável.
