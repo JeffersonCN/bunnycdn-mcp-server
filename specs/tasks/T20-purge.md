@@ -1,6 +1,6 @@
 # T20 — Purge
 
-> **Status:** approved  ·  **Agente:** antigravity (task/T20-purge)  ·  **Branch:** `task/T20-purge`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** antigravity (task/T20-purge)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
