@@ -1,6 +1,6 @@
 # T50 — Estatísticas
 
-> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T50-stats)  ·  **Branch:** `task/T50-stats`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T50-stats)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
