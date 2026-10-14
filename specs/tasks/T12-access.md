@@ -1,6 +1,6 @@
 # T12 — Listas de acesso
 
-> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T12-access`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
