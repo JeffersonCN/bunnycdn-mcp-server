@@ -1,0 +1,101 @@
+---
+source: tests/stats.rs
+expression: val
+---
+{
+  "avg_origin_response_ms": 120,
+  "bandwidth": {
+    "bytes": 123456789,
+    "human": "117.7 MiB"
+  },
+  "cache_hit_rate": 93.4,
+  "errors": {
+    "3xx": 10,
+    "4xx": 234,
+    "5xx": 3
+  },
+  "origin_traffic": {
+    "bytes": 2345678,
+    "human": "2.2 MiB"
+  },
+  "pullzone_id": 123,
+  "range": {
+    "from": "2026-09-14",
+    "to": "2026-10-14"
+  },
+  "requests": 45678,
+  "series": {
+    "bandwidth": [
+      [
+        "2026-09-14",
+        1234.0
+      ],
+      [
+        "2026-09-15",
+        2345.0
+      ]
+    ],
+    "cache_hit_rate": [
+      [
+        "2026-09-14",
+        92.5
+      ],
+      [
+        "2026-09-15",
+        94.0
+      ]
+    ],
+    "requests": [
+      [
+        "2026-09-14",
+        500.0
+      ],
+      [
+        "2026-09-15",
+        600.0
+      ]
+    ]
+  },
+  "top_countries": [
+    {
+      "bytes": 1000,
+      "code": "BR"
+    },
+    {
+      "bytes": 800,
+      "code": "US"
+    },
+    {
+      "bytes": 600,
+      "code": "DE"
+    },
+    {
+      "bytes": 500,
+      "code": "GB"
+    },
+    {
+      "bytes": 400,
+      "code": "FR"
+    },
+    {
+      "bytes": 300,
+      "code": "JP"
+    },
+    {
+      "bytes": 200,
+      "code": "CA"
+    },
+    {
+      "bytes": 150,
+      "code": "AU"
+    },
+    {
+      "bytes": 100,
+      "code": "NL"
+    },
+    {
+      "bytes": 80,
+      "code": "ES"
+    }
+  ]
+}

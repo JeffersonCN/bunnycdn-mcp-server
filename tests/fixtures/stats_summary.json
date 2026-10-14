@@ -1,0 +1,52 @@
+{
+  "TotalBandwidthUsed": 123456789,
+  "TotalOriginTraffic": 2345678,
+  "AverageOriginResponseTime": 120,
+  "TotalRequestsServed": 45678,
+  "CacheHitRate": 93.4,
+  "BandwidthUsedChart": {
+    "2026-09-14": 1234.0,
+    "2026-09-15": 2345.0
+  },
+  "BandwidthCachedChart": {
+    "2026-09-14": 1000.0,
+    "2026-09-15": 2000.0
+  },
+  "CacheHitRateChart": {
+    "2026-09-14": 92.5,
+    "2026-09-15": 94.0
+  },
+  "RequestsServedChart": {
+    "2026-09-14": 500.0,
+    "2026-09-15": 600.0
+  },
+  "OriginTrafficChart": {
+    "2026-09-14": 100.0,
+    "2026-09-15": 200.0
+  },
+  "GeoTrafficDistribution": {
+    "BR": 1000,
+    "US": 800,
+    "DE": 600,
+    "GB": 500,
+    "FR": 400,
+    "JP": 300,
+    "CA": 200,
+    "AU": 150,
+    "NL": 100,
+    "ES": 80,
+    "IT": 50
+  },
+  "Error3xxChart": {
+    "2026-09-14": 4.0,
+    "2026-09-15": 6.0
+  },
+  "Error4xxChart": {
+    "2026-09-14": 100.0,
+    "2026-09-15": 134.0
+  },
+  "Error5xxChart": {
+    "2026-09-14": 1.0,
+    "2026-09-15": 2.0
+  }
+}
