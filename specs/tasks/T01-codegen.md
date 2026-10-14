@@ -1,6 +1,6 @@
 # T01 — Codegen da spec → `src/generated.rs`
 
-> **Status:** approved  ·  **Agente:** claude-code (sonnet 5.5)  ·  **Branch:** `task/T01-codegen`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** claude-code (sonnet 5.5)  ·  **Branch:** `task/T01-codegen`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível B · outro fornecedor
 
