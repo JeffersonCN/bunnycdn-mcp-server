@@ -1,6 +1,6 @@
 # T70 — Transporte Streamable HTTP
 
-> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (Maestro task/T70-http)  ·  **Branch:** `task/T70-http`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** gemini-3.8-flash-high (Maestro task/T70-http)  ·  **Branch:** `task/T70-http`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
