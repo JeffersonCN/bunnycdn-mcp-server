@@ -25,8 +25,11 @@ esta página e qualquer outro documento, **esta página vence**; abra uma change
 - A API key nunca aparece em logs, erros, `Debug` ou saída de tool. Use o tipo `Secret`.
 - Campos sensíveis da API são **sempre** redigidos na saída, inclusive em `verbose`:
   `ZoneSecurityKey`, `AWSSigningKey`, `AWSSigningSecret`, `LogForwardingToken`,
-  `Hostnames[].Certificate`, `Hostnames[].CertificateKey`, e qualquer campo cujo nome contenha
-  `Secret`, `Password`, `Token` ou `PrivateKey`. Valor redigido: `"[redacted]"`.
+  `Hostnames[].Certificate`, `Hostnames[].CertificateKey` (nomes exatos, sem diferenciar caixa), e
+  qualquer campo cujo nome contenha (sem diferenciar caixa) `Secret`, `Password`, `Token`,
+  `PrivateKey`, `ApiKey`, `AccessKey` ou `SecurityKey`, exceto quando o valor é booleano,
+  numérico ou nulo (flags e contadores como `EnableTokenAuthentication` não carregam segredo;
+  nulo nunca é redigido). Valor redigido: `"[redacted]"`.
 - `tracing` escreve só em **stderr** (stdout é o canal do protocolo stdio).
 
 ## C4 — Erros acionáveis

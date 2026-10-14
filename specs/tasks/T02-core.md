@@ -1,6 +1,6 @@
 # T02 — Runtime core: config, client, server, stdio, harness
 
-> **Status:** approved  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor se possível; senão A em outra sessão
 
@@ -360,14 +360,14 @@ CR-1: `specs/constitution.md` (C3) · trocar "e qualquer campo cujo nome contenh
 numérico ou nulo (nulo nunca é redigido)" · flags/contadores como `EnableTokenAuthentication` e
 `MonthlyAiGateway*Tokens` não carregam segredo e são úteis na saída; `model/redact.rs` já se
 comporta assim (as chaves exatas de C3 continuam redigidas quando o valor é string, bool, número,
-objeto ou array; nulo nunca é redigido) · aberta (texto ajustado na rodada 3; aplicação em C3 com o orquestrador)
+objeto ou array; nulo nunca é redigido) · aceita, aplicada em C3 pelo orquestrador (2026-10-14)
 
 CR-2: `specs/constitution.md` (C3) · acrescentar `ApiKey`, `AccessKey` e `SecurityKey` às
 substrings sensíveis (`apikey|accesskey|securitykey`) · a spec da API tem `ApiKey`,
 `ApiAccessKey`, `ReadOnlyApiKey` (VideoLibraryModel) e `SecurityKey`
 (ResetPullZoneSecurityKeyModel), não cobertos por C3; fora do escopo atual das tools, mas
 `model/redact.rs` é congelado após T02 — aplicar CR exige mudar `CONTAINS` · aceita,
-implementada em T02 (rodada 3)
+implementada em T02 (rodada 3); C3 atualizada pelo orquestrador (2026-10-14)
 
 CR-3: `src/client/mod.rs` / `src/client/error.rs` (para T92) · `BunnyError::Decode` carrega a
 mensagem do serde, que pode citar valores da resposta (`invalid type: string "…"`); avaliar
