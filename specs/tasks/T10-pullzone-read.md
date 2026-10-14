@@ -1,6 +1,6 @@
 # T10 — Pull zones: leitura
 
-> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T10-pullzone-read)  ·  **Branch:** `task/T10-pullzone-read`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T10-pullzone-read)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
