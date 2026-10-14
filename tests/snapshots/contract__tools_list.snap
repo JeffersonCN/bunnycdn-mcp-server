@@ -1,0 +1,1040 @@
+---
+source: tests/contract.rs
+expression: tools
+---
+[
+  {
+    "name": "bunny_certificate_add",
+    "description": "Upload a custom TLS certificate (PEM) for a hostname of a pull zone.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "certificate_pem": {
+          "description": "Certificate chain in PEM.",
+          "type": "string"
+        },
+        "hostname": {
+          "description": "Hostname the certificate is for.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "private_key_pem": {
+          "description": "Private key in PEM.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "hostname",
+        "certificate_pem",
+        "private_key_pem"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_certificate_issue_free",
+    "description": "Issue a free Let's Encrypt certificate for a hostname already added to a pull zone with DNS pointing to Bunny.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hostname": {
+          "description": "Hostname already added to a pull zone with DNS pointing to Bunny.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "hostname"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_certificate_remove",
+    "description": "Remove the TLS certificate of a hostname.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hostname": {
+          "description": "Hostname to remove certificate from.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "hostname"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_country_list",
+    "description": "List countries with ISO codes (useful for blocked_countries and geo statistics).",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "search": {
+          "description": "Search filter matching country name or ISO code, case-insensitive.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_edgerule_delete",
+    "description": "Delete an edge rule.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "guid": {
+          "description": "Edge rule GUID.",
+          "type": "string"
+        },
+        "pullzone_id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pullzone_id",
+        "guid"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_edgerule_list",
+    "description": "List the edge rules of a pull zone.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "pullzone_id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pullzone_id"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_edgerule_set_enabled",
+    "description": "Enable or disable an edge rule.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "Enabled state.",
+          "type": "boolean"
+        },
+        "guid": {
+          "description": "Edge rule GUID.",
+          "type": "string"
+        },
+        "pullzone_id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pullzone_id",
+        "guid",
+        "enabled"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_edgerule_upsert",
+    "description": "Create an edge rule, or update it when `guid` is given. Use enum names, e.g. action_type \"SetResponseHeader\", trigger type \"Url\".",
+    "inputSchema": {
+      "$defs": {
+        "EdgeRuleActionInput": {
+          "additionalProperties": false,
+          "properties": {
+            "p1": {
+              "description": "Action parameter 1.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "p2": {
+              "description": "Action parameter 2.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "p3": {
+              "description": "Action parameter 3.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "type": {
+              "description": "Action name.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "type": "object"
+        },
+        "EdgeRuleTriggerInput": {
+          "additionalProperties": false,
+          "properties": {
+            "match": {
+              "description": "How patterns match (MatchAny, MatchAll, MatchNone).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "parameter1": {
+              "description": "Trigger parameter 1 (e.g. header name for RequestHeader).",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "patterns": {
+              "description": "Conditions.",
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "type": {
+              "description": "Trigger type name, e.g. \"Url\", \"RequestHeader\".",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "patterns"
+          ],
+          "type": "object"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "action_parameter1": {
+          "description": "Action parameter 1 (meaning depends on action).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "action_parameter2": {
+          "description": "Action parameter 2 (meaning depends on action).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "action_parameter3": {
+          "description": "Action parameter 3 (meaning depends on action).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "action_type": {
+          "description": "Action name. Common: ForceSSL, Redirect, OriginUrl, OverrideCacheTime, BlockRequest, SetResponseHeader, SetRequestHeader, SetStatusCode, IgnoreQueryString, BypassPermaCache.",
+          "type": "string"
+        },
+        "description": {
+          "description": "Human description.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "enabled": {
+          "description": "Enabled state.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "extra_actions": {
+          "description": "Additional actions.",
+          "items": {
+            "$ref": "#/$defs/EdgeRuleActionInput"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "guid": {
+          "description": "Existing rule to update; omit to create.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "match": {
+          "description": "How triggers combine (MatchAny, MatchAll, MatchNone).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pullzone_id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "triggers": {
+          "description": "Conditions (1 to 5 triggers).",
+          "items": {
+            "$ref": "#/$defs/EdgeRuleTriggerInput"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "pullzone_id",
+        "action_type",
+        "triggers"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_hostname_add",
+    "description": "Add a custom hostname to a pull zone. Point its DNS (CNAME) to the zone's b-cdn.net hostname first.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hostname": {
+          "description": "e.g. cdn.example.com",
+          "type": "string"
+        },
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "hostname"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_hostname_force_ssl",
+    "description": "Enable or disable HTTP→HTTPS redirect for one hostname.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "description": "Whether to force SSL redirection.",
+          "type": "boolean"
+        },
+        "hostname": {
+          "description": "Custom hostname to configure.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "hostname",
+        "enabled"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_hostname_remove",
+    "description": "Remove a custom hostname (and its certificate) from a pull zone.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "hostname": {
+          "description": "Custom hostname to remove.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "hostname"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_access_list",
+    "description": "Add or remove an entry in a pull zone's allowed referrers, blocked referrers or blocked IPs.",
+    "inputSchema": {
+      "$defs": {
+        "AccessAction": {
+          "description": "Action to perform on an access list.",
+          "oneOf": [
+            {
+              "const": "add",
+              "description": "Add entry to list.",
+              "type": "string"
+            },
+            {
+              "const": "remove",
+              "description": "Remove entry from list.",
+              "type": "string"
+            }
+          ]
+        },
+        "AccessList": {
+          "description": "Target list for pull zone access control.",
+          "oneOf": [
+            {
+              "const": "allowed_referrer",
+              "description": "Whitelist of allowed HTTP referrers.",
+              "type": "string"
+            },
+            {
+              "const": "blocked_referrer",
+              "description": "Blacklist of blocked HTTP referrers.",
+              "type": "string"
+            },
+            {
+              "const": "blocked_ip",
+              "description": "Blacklist of blocked IP addresses or CIDR ranges.",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/AccessAction",
+          "description": "Operation."
+        },
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "list": {
+          "$ref": "#/$defs/AccessList",
+          "description": "Which list."
+        },
+        "value": {
+          "description": "Hostname (referrers) or IP/CIDR (blocked_ip).",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "list",
+        "action",
+        "value"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_check_availability",
+    "description": "Check whether a pull zone name is available.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Candidate name.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_create",
+    "description": "Create a pull zone. Provide `origin_url` or `storage_zone_id`. Takes effect immediately.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "Zone name; becomes <name>.b-cdn.net.",
+          "type": "string"
+        },
+        "origin_url": {
+          "default": null,
+          "description": "Origin server URL.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "settings": {
+          "additionalProperties": true,
+          "default": null,
+          "description": "Extra settings (same keys as bunny_pullzone_update).",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "storage_zone_id": {
+          "default": null,
+          "description": "Use a Bunny storage zone as origin.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "tier": {
+          "default": null,
+          "description": "Pricing tier.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_delete",
+    "description": "Permanently delete a pull zone and its configuration. Cannot be undone.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_feature_statistics",
+    "description": "Statistics for a pull zone feature: optimizer, origin shield queue or SafeHop.",
+    "inputSchema": {
+      "$defs": {
+        "FeatureKind": {
+          "description": "Feature kind for pull zone feature statistics (TOOL-ST-02).",
+          "enum": [
+            "optimizer",
+            "origin_shield_queue",
+            "safehop"
+          ],
+          "type": "string"
+        }
+      },
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "date_from": {
+          "default": null,
+          "description": "Start date (UTC, YYYY-MM-DD).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "date_to": {
+          "default": null,
+          "description": "End date.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hourly": {
+          "default": null,
+          "description": "Hourly granularity (short ranges).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "include_series": {
+          "default": null,
+          "description": "Include time series (≤60 points each).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/$defs/FeatureKind",
+          "description": "Feature."
+        },
+        "pullzone_id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pullzone_id",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_get",
+    "description": "Get one pull zone's configuration summary. Set `verbose` for the full (redacted) object.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "verbose": {
+          "default": false,
+          "description": "Return the full API object instead of the summary.",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_list",
+    "description": "List pull zones (id, name, origin, hostnames). Use `search` to filter by name.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "default": 1,
+          "description": "Page number.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "per_page": {
+          "default": 100,
+          "description": "Items per page.",
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "search": {
+          "default": null,
+          "description": "Substring of the pull zone name.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_reset_security_key",
+    "description": "Reset the token-authentication security key of a pull zone. Existing signed URLs stop working.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "security_key": {
+          "default": null,
+          "description": "New key; Bunny generates one if omitted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_pullzone_update",
+    "description": "Update pull zone settings. `settings` is a partial object using Bunny's PascalCase keys (e.g. {\"EnableSmartCache\":true,\"CacheControlMaxAgeOverride\":3600}).",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "settings": {
+          "additionalProperties": true,
+          "description": "Partial PullZoneSettingsModel.",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "settings"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_purge_pullzone",
+    "description": "Purge the whole cache of a pull zone, or only objects with `cache_tag`.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "cache_tag": {
+          "default": null,
+          "description": "Purge only objects tagged with this CDN-Tag value.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "description": "Pull zone id.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_purge_url",
+    "description": "Purge one URL from the CDN cache. A trailing `*` purges everything under that path.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "async": {
+          "default": null,
+          "description": "Return immediately instead of waiting for propagation.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "exact_path": {
+          "default": null,
+          "description": "For URLs ending in `/`, purge only that path (no implicit wildcard).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "url": {
+          "description": "Full URL, e.g. https://cdn.example.com/img/*.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_region_list",
+    "description": "List Bunny CDN regions (PoPs) with region code and price per GB.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "continent": {
+          "description": "Filter by continent code (e.g. \"EU\"), case-insensitive.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "bunny_statistics",
+    "description": "Traffic statistics for the account or one pull zone: bandwidth, requests, cache hit rate, origin time, error counts and top countries.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "date_from": {
+          "default": null,
+          "description": "Start date (UTC, YYYY-MM-DD).",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "date_to": {
+          "default": null,
+          "description": "End date.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hourly": {
+          "default": null,
+          "description": "Hourly granularity (short ranges).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "include_series": {
+          "default": null,
+          "description": "Include time series (≤60 points each).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "pullzone_id": {
+          "default": null,
+          "description": "Limit to one pull zone.",
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  }
+]

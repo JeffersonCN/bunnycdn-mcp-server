@@ -23,9 +23,9 @@ async fn initialize_and_list_tools() {
     assert_eq!(info.instructions.as_deref(), Some(INSTRUCTIONS));
     assert!(info.capabilities.tools.is_some());
 
-    // In Wave 1 domain routers are being added (Wave 2 / T90 asserts the exact 24 count).
+    // All domain routers are in place for Wave 2 / T90.
     let tools = client.list_all_tools().await.unwrap();
-    assert!(tools.len() <= 24);
+    assert_eq!(tools.len(), 24);
 
     client.cancel().await.unwrap();
     server_handle.await.unwrap();
