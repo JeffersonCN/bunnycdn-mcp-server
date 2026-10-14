@@ -1,6 +1,6 @@
 # T10 — Pull zones: leitura
 
-> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T10-pullzone-read)  ·  **Branch:** `task/T10-pullzone-read`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T10-pullzone-read)  ·  **Branch:** `task/T10-pullzone-read`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
@@ -44,5 +44,22 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — Claude Sonnet 5.5 / Anthropic (via Antigravity)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` rodado pelo revisor: 14 testes de `tests/pullzone.rs` + demais suítes, 0 falhas)
+**Bloqueantes:** nenhum.
+- B1 T02 `done`. B2 diff vs merge-base ⊆ arquivos possuídos + arquivo da task (`src/model/pullzone.rs`, `src/tools/pullzone.rs`, `tests/pullzone.rs`, `tests/fixtures/pullzone_get.json`, snapshot). B3 `Cargo.toml`/`Cargo.lock` intactos.
+- B5–B8 nomes, descrições (`///` idênticos ao contrato), args (`deny_unknown_fields`, defaults 1/100/false, faixas `page>=1`, `per_page` 5..=1000, `id>=1`) e anotações R (`read_only_hint=true`, `open_world_hint=true`) conferem.
+- B9 mapeamentos conferem: `GET /pullzone?page&perPage&includeCertificate=false[&search]`, `GET /pullzone/{id}`, `POST /pullzone/checkavailability {Name}`; resposta array e paginada aceitas (`untagged`), paginação local no array.
+- B10 saída conforme contrato (snapshot `insta` revisado; listas vazias omitidas conforme C2/nota da linha 37 do contrato; `origin`/`tier`/`features` conferidos contra os enums `PullZoneOriginType`/`PullZoneType` do OpenAPI vendorizado). Fixture com 171 campos, 2 hostnames, 2 edge rules, segredos preenchidos.
+- B11 sem `ErrorData`; B12 sem `tracing`, `verbose` passa por `redact` (teste cobre `ZoneSecurityKey`, `Certificate`, `CertificateKey`, etc.); B13 todos os testes citam `// covers: TOOL-PZ-0x`; B14 só wiremock; B15 sem `unwrap`/`expect`/`unsafe` fora de testes.
+
+**Não bloqueantes:**
+- N4/C3 `src/model/pullzone.rs:25,66` — `BunnyError::Decode(format!("...: {e}"))` repassa a mensagem do `serde_json::Error`, que pode conter o valor recebido (ex.: `invalid type: string "…"`). O cliente (`client::tests::decode_error_omits_response_values`) adota a convenção de não ecoar valores; sugerido descartar o detalhe do valor (manter só o caminho/tipo esperado).
+- N2 `RawPullZone.zone_security_key` (`src/model/pullzone.rs:140`) é desserializado mas nunca usado; remover evita carregar um segredo em memória à toa.
+- N2 Os blocos de montagem de `origin`/`tier` em `to_summary`/`to_list_item` se repetem; poderia ser um helper privado (T11 reutiliza as projeções).
+- N1 `idempotent_hint = false` nas tools R: o contrato só exige `read_only_hint=true`; manter consistente com as demais tools R dos outros domínios.
+- Falta teste para `origin` não-URL (storage/edge_script) — não exigido pelo contrato, apenas sugestão.
 
 ## Change requests
