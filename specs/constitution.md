@@ -54,7 +54,9 @@ esta página e qualquer outro documento, **esta página vence**; abra uma change
   `Cargo.toml`, `Cargo.lock`, `src/lib.rs`, `src/main.rs`, `src/server.rs`, `src/config.rs`,
   `src/client/mod.rs`, `src/client/error.rs`, `src/tools/mod.rs`, `src/tools/util.rs`,
   `src/model/mod.rs`, `src/generated.rs` (só via xtask), `tests/common/**`, `.github/workflows/ci.yml`.
-- Arquivo de status: cada agente edita **apenas** o arquivo da sua task em `specs/tasks/`.
+- Arquivo de status: cada implementador edita **apenas** o arquivo da sua task em `specs/tasks/`,
+  exceto a seção "Revisão". O revisor edita **apenas** a seção "Revisão" e o campo `Status`.
+- Merge em `main` é exclusivo do orquestrador.
 
 ## C8 — Estilo
 - Rust 2024 edition, MSRV 1.88. `rustfmt` padrão. Identificadores e comentários de código em inglês;

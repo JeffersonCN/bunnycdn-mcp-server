@@ -1,6 +1,8 @@
 # T02 — Runtime core: config, client, server, stdio, harness
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor se possível; senão A em outra sessão
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -48,5 +50,8 @@
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

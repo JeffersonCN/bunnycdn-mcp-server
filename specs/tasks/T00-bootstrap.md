@@ -1,6 +1,8 @@
 # T00 — Bootstrap do workspace + CI
 
 > **Status:** done  ·  **Agente:** claude-opus-5-5 (sessão principal)  ·  **Branch:** `task/T00-bootstrap`  ·  **Atualizado:** 2026-10-14
+>
+> **Perfil:** implementar: nível A  ·  revisar: nível —
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -54,5 +56,8 @@
   `rustls` (provider). Dev: `rmcp` com `client` para e2e; `tokio` `io-util` p/ duplex.
 - 2026-10-14 — `clippy.toml` libera `unwrap`/`expect` em testes; `[lints]` proíbe `unsafe`.
 - 2026-10-14 — Binário release placeholder: 286 KB (sem uso real das deps ainda).
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

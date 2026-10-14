@@ -1,6 +1,8 @@
 # T40 — Edge rules
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T40-edgerule`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível A ou B  ·  revisar: nível A · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -27,5 +29,8 @@
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

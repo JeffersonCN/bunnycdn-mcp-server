@@ -1,6 +1,8 @@
 # T70 — Transporte Streamable HTTP
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T70-http`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -32,5 +34,8 @@ Fonte do rmcp 3.5: `transport/streamable_http_server/tower.rs` (`StreamableHttpS
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

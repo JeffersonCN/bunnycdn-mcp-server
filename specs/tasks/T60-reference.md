@@ -1,6 +1,8 @@
 # T60 — Regiões e países
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T60-reference`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -26,5 +28,8 @@
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

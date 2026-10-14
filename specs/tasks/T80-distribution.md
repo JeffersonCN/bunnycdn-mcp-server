@@ -1,6 +1,8 @@
 # T80 — Release multi-plataforma, Homebrew e Docker
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T80-distribution`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível B  ·  revisar: nível A · outro fornecedor (segredos e publicação)
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -34,5 +36,8 @@ em `Cargo.toml`), `.github/workflows/release.yml`, `docs/release.md`.
       registrar como verificação pendente se T70 ainda não mergeou.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

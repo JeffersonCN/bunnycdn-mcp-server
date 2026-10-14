@@ -1,6 +1,8 @@
 # T90 — Teste de contrato `tools/list` + orçamento de tokens
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T90-contract`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -30,5 +32,8 @@
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

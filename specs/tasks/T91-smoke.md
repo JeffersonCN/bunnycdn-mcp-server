@@ -1,6 +1,8 @@
 # T91 — Smoke tests contra a API real
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -32,5 +34,8 @@
 - [ ] Divergências registradas e com CR.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

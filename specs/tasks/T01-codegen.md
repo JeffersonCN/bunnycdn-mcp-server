@@ -1,6 +1,8 @@
 # T01 — Codegen da spec → `src/generated.rs`
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T01-codegen`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível A ou B  ·  revisar: nível B · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -36,5 +38,8 @@
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

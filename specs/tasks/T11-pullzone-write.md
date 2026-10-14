@@ -1,6 +1,8 @@
 # T11 — Pull zones: escrita
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T11-pullzone-write`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível A ou B  ·  revisar: nível A · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -26,5 +28,8 @@ Os mesmos de T10 (herda a propriedade após T10 ser mergeada).
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests

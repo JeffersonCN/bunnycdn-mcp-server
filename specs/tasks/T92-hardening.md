@@ -1,6 +1,8 @@
 # T92 — Medição de leveza, ajuste de dependências e README
 
 > **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T92-hardening`  ·  **Atualizado:** —
+>
+> **Perfil:** implementar: nível A  ·  revisar: nível B · outro fornecedor
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -29,5 +31,8 @@ por este próprio agente (é a última onda, sem concorrência).
 - [ ] Gate C6.
 
 ## Log do agente
+
+## Revisão
+<!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
 
 ## Change requests
