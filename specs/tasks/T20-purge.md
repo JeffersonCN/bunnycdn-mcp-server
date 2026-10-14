@@ -1,6 +1,6 @@
 # T20 — Purge
 
-> **Status:** review  ·  **Agente:** antigravity (task/T20-purge)  ·  **Branch:** `task/T20-purge`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** antigravity (task/T20-purge)  ·  **Branch:** `task/T20-purge`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
@@ -66,6 +66,18 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — revisor: Claude Sonnet 5.5 / Anthropic (via Antigravity)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` rodado pelo revisor; purge 9/9, lib 30/30, core 14/14, sem falhas)
+**Bloqueantes:** nenhum.
+- B1 T02 `done`. B2/B3 diff vs `main` (15f0556) = `specs/tasks/T20-purge.md`, `src/tools/purge.rs`, `tests/purge.rs`; `Cargo.toml`/`Cargo.lock` intactos.
+- B5–B8 nomes `bunny_purge_url`/`bunny_purge_pullzone`, descrições (doc comments) idênticas ao contrato, args com `deny_unknown_fields`, defaults/obrigatoriedade corretos, anotações X·I + `open_world_hint = true`.
+- B9/B10 `POST /purge?url=…` com `async`/`exactPath` só quando true e sem body; `POST /pullzone/{id}/purgeCache` com body `{"CacheTag"}` só se informado; saídas conforme exemplos do contrato; URL original preservada (sem re-serializar).
+- B11–B15 erros via `invalid`/`api_error` (sem `ErrorData`), sem logs/segredos, `// covers:` presente nos 9 testes, só wiremock, sem `unwrap`/`unsafe` fora de testes.
+**Não bloqueantes:**
+- N3 Descoberta documentada no log: o `*` chega literal na query (`url=https%3A%2F%2Fcdn.example.com%2Fimg%2F*`), divergindo do texto do contrato ("percent-encoded"); sugerir ajustar o contrato em doc futura.
+- N4 `purge_url_query_encoding_inspection` só imprime a query bruta e compara via `query_pairs()`; não afirma a forma exata do `*`. Poderia assertar `raw_query` para travar o comportamento.
 
 ## Change requests
 ### CR-01: Relaxar asserção de tools.len() em tests/e2e_stdio.rs durante a Wave 1
