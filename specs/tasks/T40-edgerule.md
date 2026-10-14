@@ -1,6 +1,6 @@
 # T40 — Edge rules
 
-> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T40-edgerule`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível A · outro fornecedor
 
