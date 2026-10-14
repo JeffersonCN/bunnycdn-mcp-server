@@ -1,6 +1,6 @@
 # T02 — Runtime core: config, client, server, stdio, harness
 
-> **Status:** review  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor se possível; senão A em outra sessão
 
@@ -190,6 +190,44 @@ rodada 2 e às decisões do orquestrador:
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 3 — 2026-10-14 — claude-opus-5-5 / Anthropic (nível A, outra sessão)
+**Veredito:** approved
+**Gate:** verde (`fmt --check`, `clippy --workspace --all-targets -D warnings`, `test --workspace`:
+27 unit + 14 `tests/core.rs` + 1 `tests/e2e_stdio.rs`), rodado pelo revisor em `b163a68`.
+
+**Verificado:**
+- **B12 rmcp (bloqueante da rodada 2) — resolvido.** `src/main.rs:55-71`: `EnvFilter` do usuário
+  intacto + `filter_fn` por layer que só corta (`rmcp*` acima de `INFO`). Reproduzido à mão com o
+  binário de `b163a68`, stdio real (`initialize` + `initialized` + `tools/call` com argumento
+  `SENTINEL-PEM-4242`): sentinela **0×** em stderr e stdout com `RUST_LOG` = `trace`, `debug`,
+  `info`, `rmcp=trace`, `rmcp::service=trace`, `rmcp::service=debug`, `trace,rmcp::service=trace`,
+  `[serve_inner]=trace`, `rmcp::service[serve_inner]=trace`, `warn,rmcp=trace`,
+  `rmcp::handler=trace`, `off` e sem `RUST_LOG`. Sem `RUST_LOG` → 1 linha (o WARN `tool not
+  found`), `off` → 0 linhas, como em `6335917`. **Controle positivo:** com o `main.rs` de
+  `4f1666f` no mesmo harness, `rmcp::service=trace` e `[serve_inner]=trace` → 2× (o teste detecta
+  o vazamento). Conferido no fonte do rmcp 3.5.1: os spans (`serve_inner`, `transport_worker`) não
+  carregam campos de request, e os eventos `INFO` restantes (`peer_info`, notificações, `serve
+  finished`) não incluem `arguments` — o corte em `INFO` basta.
+- **CR-2 — ok.** `CONTAINS` com `apikey|accesskey|securitykey` (`src/model/redact.rs:21-29`);
+  teste `redacts_api_access_and_security_keys` cobre `ApiKey`, `ApiAccessKey`, `ReadOnlyApiKey`,
+  `SecurityKey`, `accessKey` aninhado em array, bool isento (CR-1) e `KeyName` mantido.
+- **CR-3 — ok.** `decode_detail` (`src/client/mod.rs:236-260`) usa `classify()` + campo ausente /
+  tipo esperado (de `rsplit_once(", expected ")`, então um valor que contenha `", expected "` não
+  vaza) + posição; aplicado nos dois caminhos (`from_slice` e `from_value`). Mensagens
+  `unknown field`/`unknown variant`/`invalid value` também ficam sem o trecho vindo da resposta.
+  Testes `decode_error_omits_response_values` e `decode_error_on_invalid_json_keeps_position_only`.
+- **Sem regressões:** B2 (`f56b776...HEAD` ⊆ arquivos possuídos + arquivo da task; `b163a68` toca
+  só `main.rs`, `client/mod.rs`, `model/redact.rs` e o arquivo da task, sem mexer em "Revisão");
+  B3 (sem `Cargo.*`); B15 (`unwrap`/`expect` só em `#[cfg(test)]`, sem `unsafe`; `unwrap_or` em
+  `decode_detail` não entra pânico). Texto da CR-1 ajustado conforme a rodada 2. N3 ok (log da
+  rodada 3 traz a tabela de reprodução).
+
+**Bloqueantes:** nenhum.
+
+**Não bloqueantes:**
+- CR-1 segue **aberta** para o orquestrador aplicar em `specs/constitution.md` (C3); CR-2 também
+  precisa refletir em C3, já que o código passou a redigir `apikey|accesskey|securitykey`.
 
 ### Rodada 2 — 2026-10-14 — claude-opus-5-5 / Anthropic (nível A, outra sessão)
 **Veredito:** changes-requested
