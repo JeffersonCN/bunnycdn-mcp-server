@@ -66,6 +66,6 @@
 
 ## Change requests
 - **CR-T01-1 (ci.yml, congelado):** remover `continue-on-error: true` (e o TODO) do passo
-  `cargo xtask codegen --check` em `.github/workflows/ci.yml`; o gerador agora existe.
+  `cargo xtask codegen --check` em `.github/workflows/ci.yml`; o gerador agora existe. **Aplicada** em `b44d9b3`.
 - **CR-T01-2 (Cargo.lock, congelado):** `xtask` passou a depender de `serde_json` (já presente no
   lock); o único diff é `dependencies = ["serde_json"]` na entrada do pacote `xtask`. Inevitável.
