@@ -1,6 +1,6 @@
 # T60 — Regiões e países
 
-> **Status:** review  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T60-reference`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T60-reference`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
@@ -44,6 +44,21 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — revisor: Claude Sonnet 5.5 / Anthropic (via antigravity)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` rodado pelo revisor: 32 unit + 14 core + 1 e2e_stdio + 6 reference + 1 xtask, 0 falhas)
+**Bloqueantes:** nenhum.
+- B1 T02 está `done`.
+- B2/B3 `git diff --name-only $(merge-base origin/main HEAD)...HEAD` = `src/model/reference.rs`, `src/tools/reference.rs`, `tests/reference.rs`, `tests/fixtures/reference_{regions,countries}.json` e o arquivo da task; `Cargo.toml`/`Cargo.lock` intactos.
+- B5–B8 nomes, descrições (doc comments idênticas ao contrato), args (`continent`/`search` opcionais, `deny_unknown_fields`) e anotações R (`read_only`, `!destructive`, `idempotent`, `open_world`) conforme contrato; router registrado em `src/server.rs`.
+- B9 `GET /region` e `GET /country` sem query; filtros locais case-insensitive (continente por igualdade, search por substring em nome/ISO).
+- B10 saída idêntica ao exemplo de TOOL-RF-01; TOOL-RF-02 omite `eu` quando false e descarta `FlagUrl`/`PopList`/`TaxRate`/`TaxPrefix`; campos vazios omitidos.
+- B11–B12 sem `ErrorData` nem `tracing::` nos arquivos da task; erros via `api_error`.
+- B13–B14 6 testes com `// covers: TOOL-RF-01/02` (fixture, filtros, 500), só wiremock.
+**Não bloqueantes:**
+- N2 os filtros locais e o `unwrap_or_default` repetem padrão que poderia virar helper compartilhado (sem exigência).
+- N3 CR-1 (exemplo de TOOL-RF-02 em `specs/tools/reference.md` mostra `"eu":false` contradizendo "eu omitido se false") é legítima; a implementação segue a regra textual e deve ser tratada pelo orquestrador.
 
 ## Change requests
 CR-1: `specs/tools/reference.md` (TOOL-RF-02) · Esclarecer o exemplo de saída de `bunny_country_list` · O exemplo mostra `{"countries":[{"iso":"BR","name":"Brazil","eu":false}]}`, mas o texto logo em seguida especifica `(eu omitido se false)`. Como o Brasil não faz parte da UE (`IsEU: false`), com a regra de omissão a saída para o Brasil é `{"countries":[{"iso":"BR","name":"Brazil"}]}` (e para um país da UE, como Alemanha/DE, `{"countries":[{"iso":"DE","name":"Germany","eu":true}]}`). Proposta: atualizar o exemplo na spec para refletir a omissão de `eu` quando false (`{"iso":"BR","name":"Brazil"}` ou usar um país da UE no exemplo com `eu: true`), alinhado a C2.
