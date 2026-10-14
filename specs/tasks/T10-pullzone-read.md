@@ -1,6 +1,6 @@
 # T10 — Pull zones: leitura
 
-> **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T10-pullzone-read`  ·  **Atualizado:** —
+> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T10-pullzone-read)  ·  **Branch:** `task/T10-pullzone-read`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
@@ -23,12 +23,24 @@
 4. Fixture realista `tests/fixtures/pullzone_get.json` com os 171 campos (montar a partir do schema `PullZoneModel` da spec, com 2 hostnames, 2 edge rules e segredos preenchidos para testar a redação). Ela será reutilizada por T40.
 
 ## Critérios de aceite
-- [ ] Toda tool do contrato implementada e coberta.
-- [ ] Nenhum arquivo fora da lista acima foi alterado (`git diff --name-only main`).
-- [ ] Nenhum campo sensível na saída (C3); nenhuma resposta bruta sem `verbose` (C2).
-- [ ] Gate C6.
+- [x] Toda tool do contrato implementada e coberta.
+- [x] Nenhum arquivo fora da lista acima foi alterado (`git diff --name-only main`).
+- [x] Nenhum campo sensível na saída (C3); nenhuma resposta bruta sem `verbose` (C2).
+- [x] Gate C6.
 
 ## Log do agente
+
+### 2026-10-14 — gemini-3.8-flash-high — rodada 1 → review
+**Resultado:** Gate C6 verde (`cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`: 60 testes passando, 0 falhas).
+
+**Implementação e entregáveis:**
+- `tests/fixtures/pullzone_get.json`: fixture realista contendo exatamente os 171 campos do `PullZoneModel` da spec OpenAPI com 2 hostnames, 2 edge rules e segredos preenchidos para verificação de redação (C3).
+- `src/model/pullzone.rs`: modelos tolerantes (`RawPullZone`, `RawHostname`, `PullZoneListApiResponse`) e projeções públicas MCP `PullZoneListItem`, `PullZoneSummary` (com sub-estruturas `PullZoneHostnameSummary`, `PullZoneCacheSummary`, `PullZoneSecuritySummary`, `PullZoneUsageSummary`), além de helpers puros de computação de `origin`, `tier` e `features`.
+- Em `PullZoneSecuritySummary`, campos de listas vazias (`blocked_referrers`, `blocked_ips`, `blocked_countries`) usam `skip_serializing_if = "Vec::is_empty"`, respeitando a Constituição C2 ("sem campos null/vazios"), `specs/design.md` §8 e a nota da linha 37 de `specs/tools/pullzone.md` ("Listas vazias omitidas (C2)").
+- Identificada divergência em PascalCase padrão do serde para acrônimos da Bunny API (`ForceSSL` e `EnableAutoSSL`), resolvida de forma tolerante com `#[serde(rename = "...", alias = "...")]`.
+- `src/tools/pullzone.rs`: bloco `#[tool_router(router = pullzone_router, vis = "pub(crate)")]` com `bunny_pullzone_list` (TOOL-PZ-01), `bunny_pullzone_get` (TOOL-PZ-02) e `bunny_pullzone_check_availability` (TOOL-PZ-06) respeitando nomes, descrições, anotações (R), mapeamentos e validações de argumentos estritos.
+- `tests/pullzone.rs`: 14 testes cobrindo respostas em array e paginada, repasse de `search`, 401 Unauthorized, validações locais, snapshot `insta` do resumo contra fixture, redação de segredos em `verbose`, 404 Not Found, disponibilidade e tratamento de erros Decode e API.
+- `tests/snapshots/pullzone__pullzone_get_summary_matches_snapshot.snap`: snapshot verificado e em conformidade com o formato do contrato.
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->

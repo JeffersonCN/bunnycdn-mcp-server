@@ -1,0 +1,48 @@
+---
+source: tests/pullzone.rs
+expression: val
+---
+{
+  "cache": {
+    "ignore_query_strings": true,
+    "max_age_override": -1,
+    "origin_shield": "FR",
+    "smart_cache": true,
+    "stale_while_offline": false,
+    "stale_while_updating": true
+  },
+  "edge_rules": 2,
+  "enabled": true,
+  "features": [
+    "optimizer",
+    "logging",
+    "websockets"
+  ],
+  "hostnames": [
+    {
+      "force_ssl": true,
+      "has_certificate": true,
+      "value": "cdn.example.com"
+    },
+    {
+      "system": true,
+      "value": "assets.b-cdn.net"
+    }
+  ],
+  "id": 123,
+  "name": "assets",
+  "origin": "https://origin.example.com",
+  "origin_host_header": "origin.example.com",
+  "security": {
+    "allowed_referrers": [
+      "example.com"
+    ],
+    "token_auth": false
+  },
+  "suspended": false,
+  "tier": "standard",
+  "usage": {
+    "monthly_bandwidth_used": 123456789,
+    "monthly_charges": 1.23
+  }
+}
