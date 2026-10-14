@@ -19,9 +19,10 @@ Worktree Directory `/Users/jeffersoncn/Repos/bunnycdn-mcp-server-worktrees` e Se
 **Permissões** não são configuração do agente: são por **aba**, no seletor ("permission pill") da
 barra do campo de mensagem, só em agentes Claude Code (Full Access → Standard → Read-Only). O CLI
 não expõe esse modo. Na prática:
-- Abas dos agentes de trabalho (inclusive as criadas por `dispatch --new-tab`): **Full Access** —
-  verificado em 2026-10-14 que `bunny-sonnet` e `bunny-agy` executam shell e gravam arquivos sem
-  prompt. Por isso são proibidos de fazer perguntas (a pergunta trava o turno).
+- Agentes de trabalho: **Full Access**. Verificado em 2026-10-14 via `maestro-cli send` que
+  `bunny-sonnet` e `bunny-agy` executam shell e gravam arquivos sem prompt. Abas criadas por
+  `dispatch --new-tab` ainda não foram verificadas: na primeira task, confira o seletor da aba.
+  Agentes de trabalho são proibidos de fazer perguntas (em Full Access a pergunta trava o turno).
 - Aba do `bunny-orq`: mude manualmente para **Standard** se quiser que ele te pergunte coisas
   inline; em Full Access ele deve decidir sozinho ou parar e reportar.
 - Antigravity (`bunny-agy`) não tem o seletor; só o modo read-only (`Cmd+R` na aba).
