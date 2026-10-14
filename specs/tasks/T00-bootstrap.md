@@ -34,10 +34,11 @@
 ## Critérios de aceite
 - [x] `cargo build --release` passa; `cargo tree` não mostra `native-tls`/`openssl`/`aws-lc`.
 - [x] `cargo xtask codegen` executa.
-- [ ] CI verde no primeiro push — **pendente**: repo sem remoto; `ci.yml` validado sintaticamente.
+- [x] CI verde no primeiro push (run 38620944059: ubuntu-latest e macos-latest `success`).
 - [x] Gate C6 (`fmt`, `clippy --workspace --all-targets -D warnings`, `test --workspace`) verde em macOS arm64 / rustc 1.99.0 (Homebrew).
 
 ## Log do agente
+- 2026-10-14 — Remoto criado: `github.com/JeffersonCN/bunnycdn-mcp-server` (privado). Primeiro CI verde.
 - 2026-10-14 — Toolchain local: Rust 1.99.0 via Homebrew (escolha do usuário). Homebrew ignora
   `rust-toolchain.toml`; o arquivo fixa 1.99.0 para CI/rustup para alinhar lints do clippy.
   `rust-version = "1.88"` (MSRV do rmcp); resolver 3 escolhe versões compatíveis com 1.88
