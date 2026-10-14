@@ -1,6 +1,6 @@
 # T02 — Runtime core: config, client, server, stdio, harness
 
-> **Status:** review  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
+> **Status:** changes-requested  ·  **Agente:** claude-opus-5-5 (Maestro task/T02-core)  ·  **Branch:** `task/T02-core`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor se possível; senão A em outra sessão
 
@@ -128,5 +128,62 @@ pelo teste manual via stdin acima).
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — claude-opus-5-5 / Anthropic (nível A, outra sessão)
+**Veredito:** changes-requested
+**Gate:** verde (`fmt --check`, `clippy --workspace --all-targets -D warnings`, `test --workspace`:
+23 unit + 13 `tests/core.rs` + 1 `tests/e2e_stdio.rs`), rodado pelo revisor.
+
+**Verificado:** B1 (T00 `done`); B2 (diff ⊆ arquivos possuídos + arquivo da task); B3 (sem
+`Cargo.*`/congelados de outras tasks); B15 (`unwrap`/`expect` só em testes, sem `unsafe`).
+Aceite reproduzido: sem key → exit 2, stdout vazio, mensagem em stderr; key-file vazio → exit 2;
+stdio real (`initialize` + `tools/list`) → `serverInfo.name=bunnycdn-mcp`, instructions = design §7,
+`tools: []`; `--transport http --listen 0.0.0.0:9` → WARN do REQ-TR-04 em stderr + "not implemented
+yet" (exit 1); `--version` ok. Interfaces conferidas contra design §3–8, §10, §12 (assinaturas de
+`BunnyClient`, `BunnyError`/§4 literal, `tools/util`, composição dos 7 routers, `int_or_string`,
+harness). O **exemplo de tool** do doc de `tools/util.rs` foi compilado numa cópia descartável e
+exercitado pelo harness (`setup` + `header("AccessKey","test-key")` + `assert_ok`/`assert_err`;
+saída `{"ok":true,"pull_zone_id":7}`) — funciona como guia para a onda 1. Com `RUST_LOG=trace` e
+uma chamada real ao cliente, a API key **não** aparece em stderr (`set_sensitive` ok).
+
+**Bloqueantes:**
+- B12 `src/main.rs:53-58` — com `RUST_LOG=debug` (ou `trace`), o `rmcp::service` loga o `Debug`
+  completo de cada request/response, **inclusive `arguments` de `tools/call`**. Reproduzido: tool
+  com `private_key_pem` → o PEM aparece literalmente em stderr (`arguments: Some({"private_key_pem":
+  String("-----BEGIN PRIVATE KEY-----…")…`). Viola C3 ("nada de key/PEM em log") e `specs/tools/hostname.md`
+  ("Nunca logar nem ecoar os PEMs"), e T30 não tem como corrigir porque
+  `main.rs` é congelado. Correção sugerida: depois de montar o `EnvFilter` (do `RUST_LOG` ou
+  `warn`), acrescentar sempre uma diretiva que limite o rmcp a `info` (ex.:
+  `.add_directive("rmcp=info".parse()…)` sem `unwrap`; diretiva por alvo prevalece sobre o nível
+  global do usuário) e comentar o porquê. Verificar à mão com `RUST_LOG=trace` + `tools/call` com
+  argumento sentinela.
+- B12/C5 `src/model/redact.rs:52-54` — valores bool/número sob chaves que contêm
+  `secret|password|token|privatekey` não são redigidos. A justificativa é boa (`EnableTokenAuthentication`,
+  `MonthlyAiGateway*Tokens`), mas C3 diz literalmente "qualquer campo cujo nome contenha … →
+  `[redacted]`", e a constituição só muda por CR. Registrar CR em "Change requests" propondo a
+  redação de C3 ("…exceto valores booleanos, numéricos ou nulos") para o orquestrador aplicar — ou
+  redigir literalmente. Sem código adicional se a CR for o caminho.
+
+**Não bloqueantes** (como `client/mod.rs` é congelado, vale aproveitar esta rodada):
+- N4 `src/client/mod.rs:119,143` — `e.without_url().to_string()` do reqwest só rende
+  `"error sending request"` (verificado: `Network error talking to Bunny API: error sending
+  request`); a causa (DNS, conexão recusada, TLS) está na cadeia `source()`. Concatenar as fontes
+  torna a mensagem acionável (C4).
+- `src/client/mod.rs:105-108` — POST/DELETE sem body saem **sem `Content-Length`** (cabeçalhos
+  recebidos no wiremock: `accept, user-agent, accesskey, host`). Em HTTP/1.1, servidores IIS/HTTP.sys
+  respondem 411 nesse caso; com h2 não importa. Sugestão: enviar corpo vazio/`Content-Length: 0`
+  quando `body` é `None` em POST, ou ao menos cobrir em T91 (`purgeCache`, `resetSecurityKey`).
+- `src/client/mod.rs:112` — timeout de **conexão** (10 s) vira `Timeout` com texto "within 30s …
+  may or may not have been applied", o que é falso nesse caso (nada foi enviado; seria seguro
+  repetir até para POST). Considerar `is_connect()` → caminho de erro de rede.
+- `src/model/redact.rs:49` — `EXACT` é case-sensitive e `ZoneSecurityKey` não casa com nenhuma
+  substring; uma variação de caixa da API vazaria. Comparar com `eq_ignore_ascii_case`. Fora do
+  escopo atual, mas a spec tem `ApiKey`/`ApiAccessKey`/`ReadOnlyApiKey` (VideoLibraryModel) e
+  `SecurityKey` (ResetPullZoneSecurityKeyModel) não cobertos por C3 — candidato a CR
+  (`apikey|accesskey|securitykey`).
+- `BunnyError::Decode` carrega a mensagem do serde, que pode citar valores da resposta
+  (`invalid type: string "…"`). Risco baixo com modelos tolerantes; registrar para T92.
+- N3 ok: log do agente documenta bem as decisões (retry, ordenação de chaves em `ok_unit`/`json!`,
+  `int_or_string`, exit 2).
 
 ## Change requests
