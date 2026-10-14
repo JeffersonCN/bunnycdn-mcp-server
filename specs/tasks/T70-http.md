@@ -1,6 +1,6 @@
 # T70 — Transporte Streamable HTTP
 
-> **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T70-http`  ·  **Atualizado:** —
+> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (Maestro task/T70-http)  ·  **Branch:** `task/T70-http`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -28,12 +28,32 @@ Fonte do rmcp 3.5: `transport/streamable_http_server/tower.rs` (`StreamableHttpS
    HTTP do rmcp **ou** POST JSON-RPC manual com reqwest; `Host: evil.example` → rejeitado.
 
 ## Critérios de aceite
-- [ ] MCP Inspector conecta em `http://127.0.0.1:8080/mcp` (documentar comando no log).
-- [ ] WARN aparece com `--listen 0.0.0.0:8080` e não aparece com loopback.
-- [ ] Nenhuma mudança em `main.rs` (a CLI já passa `HttpOptions`); se precisar, CR.
-- [ ] Gate C6.
+- [x] MCP Inspector conecta em `http://127.0.0.1:8080/mcp` (documentar comando no log).
+- [x] WARN aparece com `--listen 0.0.0.0:8080` e não aparece com loopback.
+- [x] Nenhuma mudança em `main.rs` (a CLI já passa `HttpOptions`); se precisar, CR.
+- [x] Gate C6.
 
 ## Log do agente
+### 2026-10-14 — gemini-3.8-flash-high — rodada 1 → review
+**Resultado:** gate verde (`cargo fmt --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`: 99 testes passando, incluindo os 5 novos de `tests/http.rs`).
+
+**MCP Inspector:**
+- Testado com sucesso conectando ao servidor HTTP via CLI do inspector:
+  `npx @modelcontextprotocol/inspector --cli --server-url http://127.0.0.1:18080/mcp --method tools/list`
+- Para inspecionar interativamente via web UI:
+  `npx @modelcontextprotocol/inspector http://127.0.0.1:8080/mcp`
+
+**WARN de não-loopback (REQ-TR-04):**
+- Verificado: ao iniciar com `--transport http --listen 0.0.0.0:18080`, emite em stderr:
+  `WARN bunnycdn_mcp: HTTP transport has NO authentication; anyone who can reach 0.0.0.0:18080 controls your Bunny account.`
+- Com `--listen 127.0.0.1:18080`, nenhum WARN é emitido.
+
+**Decisões e implementação:**
+- `src/transport/http.rs`: implementado `serve(server, opts)` e `serve_with_shutdown(listener, server, opts, shutdown)`.
+- Roteamento: axum com `GET /healthz` → `200 ok` e `nest_service("/mcp", service)` com `StreamableHttpService` + `LocalSessionManager`.
+- Host validation (REQ-TR-05): `StreamableHttpServerConfig` com loopbacks padrão do rmcp (`localhost`, `127.0.0.1`, `::1`) estendido com `opts.allowed_hosts`.
+- Shutdown gracioso (REQ-TR-06): manipuladores para SIGINT (Ctrl+C) e SIGTERM em Unix acionando `CancellationToken` e sinal para `axum::serve(...).with_graceful_shutdown(...)`, com timeout rígido de 5 s.
+- `tests/http.rs`: cobre `GET /healthz`, handshake `initialize`, notificação `notifications/initialized`, listagem de tools (`tools/list`), rejeição de `Host: evil.example`, permissão de host adicional em `allowed_hosts`, e término gracioso em ≤ 5 s.
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
