@@ -1,6 +1,6 @@
 # T80 — Release multi-plataforma, Homebrew e Docker
 
-> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T80-distribution`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível A · outro fornecedor (segredos e publicação)
 
@@ -112,7 +112,7 @@ só no job do tap; nenhum segredo ecoado; `publish-docker` com permissões próp
 
 ## Change requests
 ### CR-01: Adicionar repository e homepage ao Cargo.toml e ignorar xtask no dist
-- **Status:** Aceita pelo orquestrador (a ser aplicada no merge).
+- **Status:** Aceita e aplicada no merge por bunny-orq.
 - **Motivo:** O `cargo-dist` 0.33.0 (e biblioteca `axoproject`) valida que todos os pacotes distribuíveis em um workspace com CI GitHub contenham o campo `repository = "https://github.com/..."` em seus manifestos (`Cargo.toml`), e que crates auxiliares do workspace como `xtask` declarem `dist = false`. Sem isso, `dist plan` e a geração do instalador Homebrew falham informando `Github CI support requires you to specify the URL of your repository`. O campo `homepage` atende à recomendação de metadados para a fórmula Homebrew.
 - **Arquivos afetados:** `Cargo.toml` e `xtask/Cargo.toml`.
 - **Diff proposto:**
