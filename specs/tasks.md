@@ -41,7 +41,7 @@ Caminho crítico: T00 → T02 → T10 → T11 → T90 → T92.
 
 ## Tabela de tasks
 
-Perfil: nível do implementador / nível do revisor (A = Opus · Gemini Pro; B = Sonnet · Gemini Flash).
+Perfil: nível do implementador / nível do revisor (A = Opus; B = Sonnet · Gemini 3.8 Flash).
 Revisor sempre de **outro fornecedor** quando possível. Detalhes em [README](README.md#perfis-de-agente).
 
 | ID | Título | Onda | Depende de | Arquivos possuídos (resumo) | Contrato | Perfil impl/rev |

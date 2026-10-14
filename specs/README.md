@@ -64,10 +64,14 @@ O orquestrador é **um único agente** de nível A: só ele faz merge, aplica CR
 
 ## Perfis de agente
 
-| Nível | Claude | Gemini / Antigravity | Uso |
+| Nível | Claude Code | Antigravity (`agy`) | Uso |
 |---|---|---|---|
-| **A** | Opus | modelo avançado (classe Pro) | interfaces compartilhadas, segurança, API real, revisão de tasks críticas, orquestração |
-| **B** | Sonnet | modelo rápido (classe Flash) | implementação guiada por contrato, revisão por checklist |
+| **A** | `opus` | — (nenhum Gemini nível A disponível; `agy` também oferece Opus, mas é o mesmo modelo) | interfaces compartilhadas, segurança, API real, revisão de tasks críticas, orquestração |
+| **B** | `sonnet` | `gemini-3.8-flash-high` | implementação guiada por contrato, revisão por checklist |
+
+Revisão de tasks com revisor **nível A**: Opus em **outra sessão** (obrigatório) + segunda passada
+opcional do Gemini Flash só com o checklist (diversidade de fornecedor). Modelos disponíveis no
+`agy`: `agy models`.
 
 Cada task traz no cabeçalho `Perfil: implementar: nível X · revisar: nível Y · outro fornecedor`.
 - "A ou B": comece com B; suba para A se o implementador B ficar `blocked` ou reprovar 2 rodadas.
