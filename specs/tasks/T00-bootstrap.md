@@ -1,6 +1,6 @@
 # T00 — Bootstrap do workspace + CI
 
-> **Status:** todo  ·  **Agente:** —  ·  **Branch:** `task/T00-bootstrap`  ·  **Atualizado:** —
+> **Status:** review  ·  **Agente:** claude-opus-5-5 (sessão principal)  ·  **Branch:** `task/T00-bootstrap`  ·  **Atualizado:** 2026-10-14
 
 | Onda | Depende de | Bloqueia |
 |---|---|---|
@@ -32,11 +32,26 @@
 7. Commit inicial incluindo os `specs/` já existentes.
 
 ## Critérios de aceite
-- [ ] `cargo build --release` passa; `cargo tree -e features` não mostra `native-tls`/`openssl`.
-- [ ] `cargo xtask codegen` executa.
-- [ ] CI verde no primeiro push (ou localmente via `act`, se não houver remoto).
-- [ ] Gate C6.
+- [x] `cargo build --release` passa; `cargo tree` não mostra `native-tls`/`openssl`/`aws-lc`.
+- [x] `cargo xtask codegen` executa.
+- [ ] CI verde no primeiro push — **pendente**: repo sem remoto; `ci.yml` validado sintaticamente.
+- [x] Gate C6 (`fmt`, `clippy --workspace --all-targets -D warnings`, `test --workspace`) verde em macOS arm64 / rustc 1.99.0 (Homebrew).
 
 ## Log do agente
+- 2026-10-14 — Toolchain local: Rust 1.99.0 via Homebrew (escolha do usuário). Homebrew ignora
+  `rust-toolchain.toml`; o arquivo fixa 1.99.0 para CI/rustup para alinhar lints do clippy.
+  `rust-version = "1.88"` (MSRV do rmcp); resolver 3 escolhe versões compatíveis com 1.88
+  (ex.: `uuid` 1.26.1 em vez de 1.28, que exige 1.89).
+- 2026-10-14 — TLS: `reqwest` `rustls-no-provider` + `rustls` com `ring` em vez da feature
+  `rustls` (que puxa aws-lc-rs: cmake, binário maior, cross-compile musl mais difícil).
+  **T02 precisa instalar o provider** (`rustls::crypto::ring::default_provider().install_default()`)
+  antes de criar o `reqwest::Client`. Design §2 atualizado.
+- 2026-10-14 — `security-framework` aparece no grafo no macOS: vem de `rustls-platform-verifier`
+  (verificação via keychain do sistema), não é native-tls/OpenSSL. No Linux usa `/etc/ssl/certs`
+  → a imagem Docker (T80) precisa incluir `ca-certificates.crt`.
+- 2026-10-14 — Dependências adicionais vs. design: `tokio-util` (CancellationToken p/ T70),
+  `rustls` (provider). Dev: `rmcp` com `client` para e2e; `tokio` `io-util` p/ duplex.
+- 2026-10-14 — `clippy.toml` libera `unwrap`/`expect` em testes; `[lints]` proíbe `unsafe`.
+- 2026-10-14 — Binário release placeholder: 286 KB (sem uso real das deps ainda).
 
 ## Change requests

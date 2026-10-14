@@ -1,0 +1,4 @@
+# Used by rustup (CI and contributors). Homebrew's rustc ignores this file.
+[toolchain]
+channel = "1.99.0"
+components = ["rustfmt", "clippy"]

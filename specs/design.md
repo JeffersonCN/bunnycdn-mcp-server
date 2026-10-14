@@ -44,7 +44,9 @@ tests/
 |---|---|---|
 | `rmcp` 3.5 | `server`, `macros`, `schemars`, `transport-io`, `transport-streamable-http-server` | MCP |
 | `tokio` 1 | `rt`, `macros`, `io-std`, `net`, `signal`, `time` | runtime current_thread |
-| `reqwest` 0.13 | sem default; TLS rustls + `json` (nomes de feature conforme 0.13) | HTTP p/ Bunny |
+| `reqwest` 0.13 | sem default; `rustls-no-provider`, `json`, `http2` | HTTP p/ Bunny |
+| `rustls` 0.23 | sem default; `ring`, `std`, `tls12` | provider `ring` — instalar com `rustls::crypto::ring::default_provider().install_default()` no início do `main` (T02). Evita aws-lc-rs (cmake, binário maior, musl) |
+| `tokio-util` 0.7 | sem default | `CancellationToken` do shutdown HTTP |
 | `serde`, `serde_json` | `derive` | modelos |
 | `schemars` 1.x | (mesma major usada pelo rmcp) | schema dos argumentos |
 | `clap` 4 | `derive`, `env`, `std`, `help`, `usage`, `error-context` (sem `color`, `suggestions`) | CLI |
