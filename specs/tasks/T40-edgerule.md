@@ -1,6 +1,6 @@
 # T40 — Edge rules
 
-> **Status:** review  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T40-edgerule`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T40-edgerule`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível A · outro fornecedor
 
@@ -44,6 +44,14 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — Antigravity (Gemini 3.8 Flash High)
+**Veredito:** approved
+**Gate:** verde
+**Bloqueantes:**
+- nenhum (B1–B15 validados)
+**Não bloqueantes:**
+- nenhum (N1–N4 validados)
 
 ## Change requests
 
