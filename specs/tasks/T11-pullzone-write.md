@@ -1,6 +1,6 @@
 # T11 — Pull zones: escrita
 
-> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T11-pullzone-write)  ·  **Branch:** `task/T11-pullzone-write`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T11-pullzone-write)  ·  **Branch:** `main`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível A · outro fornecedor
 
