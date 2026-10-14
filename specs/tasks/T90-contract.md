@@ -1,6 +1,6 @@
 # T90 — Teste de contrato `tools/list` + orçamento de tokens
 
-> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T90-contract)  ·  **Branch:** `task/T90-contract`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T90-contract)  ·  **Branch:** `task/T90-contract`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
