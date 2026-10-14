@@ -13,8 +13,21 @@ Roteiro do orquestrador (`bunny-orq`) para executar as ondas de `specs/tasks.md`
 | `bunny-agy` | `f79c367f-f77f-487a-8b3d-9e87f5b907e2` | antigravity | gemini-3.8-flash-high | B (outro fornecedor) |
 
 IDs atuais: `maestro-cli list agents --json`. Configuração manual (UI), por agente de trabalho:
-Worktree Directory `/Users/jeffersoncn/Repos/bunnycdn-mcp-server-worktrees`, Setup Script
-`cargo fetch --quiet`, permissão **Full Access** (orquestrador em **Standard**).
+Worktree Directory `/Users/jeffersoncn/Repos/bunnycdn-mcp-server-worktrees` e Setup Script
+`cargo fetch --quiet`.
+
+**Permissões** não são configuração do agente: são por **aba**, no seletor ("permission pill") da
+barra do campo de mensagem, só em agentes Claude Code (Full Access → Standard → Read-Only). O CLI
+não expõe esse modo. Na prática:
+- Abas dos agentes de trabalho (inclusive as criadas por `dispatch --new-tab`): **Full Access** —
+  verificado em 2026-10-14 que `bunny-sonnet` e `bunny-agy` executam shell e gravam arquivos sem
+  prompt. Por isso são proibidos de fazer perguntas (a pergunta trava o turno).
+- Aba do `bunny-orq`: mude manualmente para **Standard** se quiser que ele te pergunte coisas
+  inline; em Full Access ele deve decidir sozinho ou parar e reportar.
+- Antigravity (`bunny-agy`) não tem o seletor; só o modo read-only (`Cmd+R` na aba).
+
+**Versão do `maestro-cli` instalado** pode estar atrás da documentação online (ex.: `send` sem
+`--no-history`). Confira opções com `maestro-cli <comando> --help` antes de usar.
 
 ## Escolha do agente por Perfil
 - Implementar nível A → `bunny-opus`; nível B → `bunny-sonnet` ou `bunny-agy` (alterne para
