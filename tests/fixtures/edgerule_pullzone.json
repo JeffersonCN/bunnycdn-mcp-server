@@ -1,0 +1,86 @@
+{
+  "Id": 123,
+  "Name": "test-pullzone",
+  "EdgeRules": [
+    {
+      "Guid": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "ActionType": 0,
+      "ActionParameter1": null,
+      "ActionParameter2": null,
+      "ActionParameter3": null,
+      "Triggers": [
+        {
+          "Type": 0,
+          "PatternMatches": [
+            "http://*"
+          ],
+          "PatternMatchingType": 0,
+          "Parameter1": null
+        }
+      ],
+      "ExtraActions": [],
+      "TriggerMatchingType": 0,
+      "Description": "Force SSL on all HTTP requests",
+      "Enabled": true,
+      "OrderIndex": 0,
+      "ReadOnly": false
+    },
+    {
+      "Guid": "7b2d1c84-9123-4e56-8a90-1b2c3d4e5f67",
+      "ActionType": 3,
+      "ActionParameter1": "86400",
+      "ActionParameter2": null,
+      "ActionParameter3": null,
+      "Triggers": [
+        {
+          "Type": 3,
+          "PatternMatches": [
+            "jpg",
+            "png",
+            "webp",
+            "css",
+            "js"
+          ],
+          "PatternMatchingType": 0,
+          "Parameter1": null
+        }
+      ],
+      "ExtraActions": [
+        {
+          "ActionType": 5,
+          "ActionParameter1": "X-Cache-Rule",
+          "ActionParameter2": "img",
+          "ActionParameter3": null
+        }
+      ],
+      "TriggerMatchingType": 0,
+      "Description": "Cache static assets for 1 day",
+      "Enabled": true,
+      "OrderIndex": 1,
+      "ReadOnly": false
+    },
+    {
+      "Guid": "a1b2c3d4-e5f6-7890-1234-56789abcdef0",
+      "ActionType": 5,
+      "ActionParameter1": "X-Custom-Header",
+      "ActionParameter2": "MyValue",
+      "ActionParameter3": null,
+      "Triggers": [
+        {
+          "Type": 1,
+          "PatternMatches": [
+            "*secret*"
+          ],
+          "PatternMatchingType": 1,
+          "Parameter1": "Authorization"
+        }
+      ],
+      "ExtraActions": [],
+      "TriggerMatchingType": 1,
+      "Description": "Header based rule",
+      "Enabled": false,
+      "OrderIndex": 2,
+      "ReadOnly": false
+    }
+  ]
+}
