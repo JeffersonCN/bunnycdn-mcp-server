@@ -1,6 +1,6 @@
 # T50 — Estatísticas
 
-> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T50-stats)  ·  **Branch:** `task/T50-stats`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (antigravity task/T50-stats)  ·  **Branch:** `task/T50-stats`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível B  ·  revisar: nível B · outro fornecedor
 
@@ -55,6 +55,24 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — revisor: Gemini 3.8 Flash High / Google (via antigravity)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` rodado pelo revisor: 44 unit + 14 core + 1 e2e_stdio + 15 hostname + 14 pullzone + 9 purge + 6 reference + 8 stats + 1 xtask, 0 falhas, 0 warnings)
+**Bloqueantes:** nenhum.
+- B1 T02 está `done`.
+- B2/B3 Diff versus `origin/main` restrito aos arquivos possuídos (`src/model/stats.rs`, `src/tools/stats.rs`, `tests/stats.rs`, fixtures `stats_*.json`, snapshot `stats__statistics_summary_matches_snapshot.snap` e `specs/tasks/T50-stats.md`). `Cargo.toml`/`Cargo.lock` e demais arquivos congelados (C7) intactos.
+- B4 Gate C6 verde verificado localmente pelo revisor.
+- B5–B8 Tools `bunny_statistics` (TOOL-ST-01) e `bunny_pullzone_feature_statistics` (TOOL-ST-02) com nomes exatos, doc comments idênticos ao contrato, argumentos tipados com `#[serde(deny_unknown_fields)]` e anotações R (`read_only_hint = true`, `destructive_hint = false`, `idempotent_hint = false`, `open_world_hint = true`).
+- B9 Mapeamento correto de query params em `/statistics` (`dateFrom`, `dateTo`, `pullZone`, `hourly`, `loadErrors=true`, `loadOriginResponseTimes=true`, `loadGeographicTrafficDistribution=true`) e nas 3 rotas de feature (`optimizer`, `origin_shield_queue`, `safehop`).
+- B10 Saídas projetadas idênticas aos exemplos do contrato: formatação IEC (KiB/MiB/GiB/TiB/PiB) com 1 decimal, hit rate arredondado a 1 casa, top 10 países ordenados por volume de bytes, `pullzone_id` omitido quando account-wide e `series` presente apenas quando `include_series: true`. Totais escalares e somas de charts extraídos genericamente para feature stats.
+- B11 Erros de validação e API retornam `CallToolResult::error` via `invalid` / `api_error`; nenhum uso de `ErrorData`.
+- B12 Sem credenciais ou campos sensíveis expostos em saídas ou logs; sem chamadas a `tracing` nos arquivos da task.
+- B13–B14 Suíte wiremock em `tests/stats.rs` com 8 testes contendo `// covers: TOOL-ST-01` e `// covers: TOOL-ST-02`, testando snapshot, account-wide, validação de IDs e datas, 401/400 e os 3 paths de features. Sem chamadas à rede real.
+- B15 Sem `unwrap`/`expect` em código não-teste; sem `unsafe`.
+**Não bloqueantes:**
+- N1 Aritmética civil-from-days de Howard Hinnant em `src/model/stats.rs` implementada de forma exemplar, sem dependências externas adicionais, com cobertura abrangente de roundtrip e anos bissextos.
+- N4 Projeções compactas (`skip_serializing_if`) e mensagens de validação claras e acionáveis.
 
 ## Change requests
 
