@@ -1,0 +1,37 @@
+[
+  {
+    "Name": "Brazil",
+    "IsoCode": "BR",
+    "IsEU": false,
+    "TaxRate": 0.0,
+    "TaxPrefix": null,
+    "FlagUrl": "https://bunnycdn.b-cdn.net/flags/br.svg",
+    "PopList": [
+      "SA"
+    ]
+  },
+  {
+    "Name": "Germany",
+    "IsoCode": "DE",
+    "IsEU": true,
+    "TaxRate": 19.0,
+    "TaxPrefix": "DE",
+    "FlagUrl": "https://bunnycdn.b-cdn.net/flags/de.svg",
+    "PopList": [
+      "DE",
+      "FR"
+    ]
+  },
+  {
+    "Name": "United States",
+    "IsoCode": "US",
+    "IsEU": false,
+    "TaxRate": 0.0,
+    "TaxPrefix": null,
+    "FlagUrl": "https://bunnycdn.b-cdn.net/flags/us.svg",
+    "PopList": [
+      "NY",
+      "LA"
+    ]
+  }
+]

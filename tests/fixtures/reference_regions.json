@@ -1,0 +1,35 @@
+[
+  {
+    "Id": 1,
+    "Name": "Europe: Frankfurt, DE",
+    "PricePerGigabyte": 0.01,
+    "RegionCode": "DE",
+    "ContinentCode": "EU",
+    "CountryCode": "DE",
+    "Latitude": 50.1109,
+    "Longitude": 8.6821,
+    "AllowLatencyRouting": true
+  },
+  {
+    "Id": 2,
+    "Name": "North America: New York, US",
+    "PricePerGigabyte": 0.01,
+    "RegionCode": "NY",
+    "ContinentCode": "NA",
+    "CountryCode": "US",
+    "Latitude": 40.7128,
+    "Longitude": -74.006,
+    "AllowLatencyRouting": true
+  },
+  {
+    "Id": 3,
+    "Name": "Asia: Singapore, SG",
+    "PricePerGigabyte": 0.03,
+    "RegionCode": "SG",
+    "ContinentCode": "AS",
+    "CountryCode": "SG",
+    "Latitude": 1.3521,
+    "Longitude": 103.8198,
+    "AllowLatencyRouting": false
+  }
+]
