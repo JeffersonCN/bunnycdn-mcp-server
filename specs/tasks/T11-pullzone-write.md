@@ -1,6 +1,6 @@
 # T11 — Pull zones: escrita
 
-> **Status:** review  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T11-pullzone-write)  ·  **Branch:** `task/T11-pullzone-write`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** gemini-3.8-flash-high (Antigravity task/T11-pullzone-write)  ·  **Branch:** `task/T11-pullzone-write`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A ou B  ·  revisar: nível A · outro fornecedor
 
@@ -39,5 +39,27 @@ Os mesmos de T10 (herda a propriedade após T10 ser mergeada).
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — Gemini 3.8 Flash (High) / Google (via Antigravity rev-T11)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` rodado pelo revisor: 120 testes passando, 0 falhas)
+**Bloqueantes:** nenhum.
+- B1: Dependências T10 e T01 estão `done`.
+- B2: Somente arquivos possuídos alterados (`src/tools/pullzone.rs`, `tests/pullzone.rs`) + arquivo da task (`specs/tasks/T11-pullzone-write.md`).
+- B3: Arquivos congelados intactos (`Cargo.toml`, `Cargo.lock`, etc.).
+- B4: Gate C6 verde verificado localmente pelo revisor.
+- B5–B8: Nomes das 4 tools de escrita (`bunny_pullzone_create`, `bunny_pullzone_update`, `bunny_pullzone_delete`, `bunny_pullzone_reset_security_key`) idênticos ao contrato; descrições `///` idênticas; anotações conformes (W, W·I, X·I, X com `open_world_hint = true`); structs de argumentos com `deny_unknown_fields` e validações estritas (regex de nome, scheme http/https, exclusividade mútua de origem, tier enum, id >= 1, settings não vazio).
+- B9: Mapeamento de endpoints conforme contrato (`POST /pullzone`, `POST /pullzone/{id}`, `DELETE /pullzone/{id}`, `POST /pullzone/{id}/resetSecurityKey`).
+- B10: Formatos de saída estritamente aderentes aos exemplos do contrato (`PullZoneSummary`, `{"ok":true,"name":...,"hint":...}`, `{"ok":true,"deleted_id":...}`, `{"ok":true,"id":...,"note":...}`).
+- B11: Erros da API Bunny e validações mapeados via `api_error` e `invalid` gerando `CallToolResult` com `is_error = true` (sem `ErrorData` para erros de negócio).
+- B12: Segredos protegidos (C3); `bunny_pullzone_reset_security_key` não ecoa a nova chave; sem uso de tracing/logs com dados sensíveis.
+- B13: Testes wiremock cobrindo todos os cenários exigidos no contrato e anotados com `// covers: TOOL-PZ-03`, `// covers: TOOL-PZ-04`, `// covers: TOOL-PZ-05`, `// covers: TOOL-PZ-07`.
+- B14: Sem uso de rede real nos testes padrão (apenas mocks wiremock).
+- B15: Sem `unwrap`/`expect` fora de testes e sem `unsafe`.
+
+**Não bloqueantes:**
+- N1: Implementação de distância de Levenshtein (`levenshtein`) e validação de configurações (`validate_settings`) puras e bem estruturadas, com testes unitários dedicados.
+- N2: Em `bunny_pullzone_create` e `bunny_pullzone_update`, a verificação de retorno `PullZoneSummary` vs resposta vazia compartilha padrão semelhante; pode ser futuramente abstraído se outros domínios adotarem o mesmo comportamento.
+- N4: Mensagens de erro de validação de argumentos fornecem sugestões claras (`did you mean ...?`) e indicam tipos esperados conforme a Constituição C4.
 
 ## Change requests
