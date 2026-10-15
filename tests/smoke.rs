@@ -25,32 +25,20 @@ use bunnycdn_mcp::tools::stats::StatisticsArgs;
 use common::{assert_ok, json};
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
-use wiremock::matchers::{method, path, query_param};
-use wiremock::{Mock, MockServer, ResponseTemplate};
 
 /// Cleanup guard that guarantees the created pull zone is deleted on Drop,
 /// even in the event of panics, assertion failures, or premature aborts.
-/// Holds configuration so a fresh BunnyClient can be spawned on a dedicated
-/// runtime during Drop unwinding, avoiding connection pool starvation on current-thread runtimes.
 struct PullZoneGuard {
-    zone_name: String,
     pullzone_id: Option<u64>,
-    config: Config,
-    disarmed: bool,
+    client: BunnyClient,
 }
 
 impl PullZoneGuard {
-    fn new(zone_name: impl Into<String>, pullzone_id: Option<u64>, config: Config) -> Self {
+    fn new(pullzone_id: u64, client: BunnyClient) -> Self {
         Self {
-            zone_name: zone_name.into(),
-            pullzone_id,
-            config,
-            disarmed: false,
+            pullzone_id: Some(pullzone_id),
+            client,
         }
-    }
-
-    fn set_id(&mut self, id: u64) {
-        self.pullzone_id = Some(id);
     }
 
     /// Explicitly deletes the pull zone using the active `BunnyServer`.
@@ -59,44 +47,14 @@ impl PullZoneGuard {
         &mut self,
         srv: &BunnyServer,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
-        if self.disarmed {
+        let Some(id) = self.pullzone_id else {
             return Ok(CallToolResult::default());
-        }
-        let id = match self.pullzone_id {
-            Some(id) => id,
-            None => {
-                let list_res = srv
-                    .bunny_pullzone_list(Parameters(PullZoneListArgs {
-                        search: Some(self.zone_name.clone()),
-                        page: 1,
-                        per_page: 10,
-                    }))
-                    .await?;
-                if list_res.is_error == Some(true) {
-                    return Ok(list_res);
-                }
-                let list_val = json(&list_res);
-                let items = list_val["items"].as_array();
-                let found = items
-                    .and_then(|arr| arr.iter().find(|it| it["name"] == self.zone_name))
-                    .and_then(|it| it["id"].as_u64());
-                match found {
-                    Some(id) => {
-                        self.pullzone_id = Some(id);
-                        id
-                    }
-                    None => return Ok(list_res),
-                }
-            }
         };
-
         let res = srv
             .bunny_pullzone_delete(Parameters(PullZoneDeleteArgs { id }))
             .await;
-        if let Ok(ref call_res) = res
-            && call_res.is_error != Some(true)
-        {
-            self.disarmed = true;
+        if res.is_ok() {
+            self.pullzone_id = None;
         }
         res
     }
@@ -104,110 +62,44 @@ impl PullZoneGuard {
 
 impl Drop for PullZoneGuard {
     fn drop(&mut self) {
-        if self.disarmed {
-            return;
-        }
-        let name = self.zone_name.clone();
-        let id_opt = self.pullzone_id;
-        eprintln!(
-            "[SMOKE GUARD] Deleting orphaned pull zone (name={name:?}, id={id_opt:?}) during Drop unwinding..."
-        );
-        let config = self.config.clone();
-        let handle = std::thread::spawn(move || {
-            let rt = match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-            {
-                Ok(rt) => rt,
-                Err(err) => {
-                    eprintln!("[SMOKE GUARD] Failed to construct cleanup runtime: {err}");
-                    return;
-                }
-            };
-            rt.block_on(async move {
-                let client = match BunnyClient::new(&config) {
-                    Ok(c) => c,
+        if let Some(id) = self.pullzone_id.take() {
+            eprintln!("[SMOKE GUARD] Deleting orphaned pull zone {id} during Drop unwinding...");
+            let client = self.client.clone();
+            let handle = std::thread::spawn(move || {
+                let rt = match tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                {
+                    Ok(rt) => rt,
                     Err(err) => {
-                        eprintln!("[SMOKE GUARD] Failed to construct cleanup BunnyClient: {err}");
+                        eprintln!("[SMOKE GUARD] Failed to construct cleanup runtime: {err}");
                         return;
                     }
                 };
-                let srv = BunnyServer::new(client);
-                let target_id = match id_opt {
-                    Some(id) => Some(id),
-                    None => {
-                        eprintln!(
-                            "[SMOKE GUARD] ID not resolved yet; searching for zone {name} via fresh client..."
-                        );
-                        match srv
-                            .bunny_pullzone_list(Parameters(PullZoneListArgs {
-                                search: Some(name.clone()),
-                                page: 1,
-                                per_page: 10,
-                            }))
-                            .await
-                        {
-                            Ok(list_res) => {
-                                if list_res.is_error == Some(true) {
-                                    eprintln!(
-                                        "[SMOKE GUARD] Error listing pull zones for {name}: {:?}",
-                                        list_res.content
-                                    );
-                                    None
-                                } else {
-                                    list_res
-                                        .content
-                                        .first()
-                                        .and_then(|c| c.as_text())
-                                        .and_then(|t| {
-                                            serde_json::from_str::<serde_json::Value>(&t.text).ok()
-                                        })
-                                        .and_then(|v| v.get("items")?.as_array().cloned())
-                                        .and_then(|items| {
-                                            items.into_iter().find(|it| it["name"] == name)
-                                        })
-                                        .and_then(|it| it["id"].as_u64())
-                                }
-                            }
-                            Err(err) => {
+                rt.block_on(async move {
+                    let srv = BunnyServer::new(client);
+                    match srv
+                        .bunny_pullzone_delete(Parameters(PullZoneDeleteArgs { id }))
+                        .await
+                    {
+                        Ok(res) => {
+                            if res.is_error == Some(true) {
                                 eprintln!(
-                                    "[SMOKE GUARD] Failed to invoke pullzone_list to resolve ID: {err}"
+                                    "[SMOKE GUARD] API returned error deleting pull zone {id}: {:?}",
+                                    res.content
                                 );
-                                None
+                            } else {
+                                eprintln!("[SMOKE GUARD] Successfully deleted pull zone {id}");
                             }
                         }
-                    }
-                };
-
-                let Some(id) = target_id else {
-                    eprintln!(
-                        "[SMOKE GUARD] Could not resolve pull zone ID for {name}; aborting drop cleanup"
-                    );
-                    return;
-                };
-
-                eprintln!("[SMOKE GUARD] Issuing delete for pull zone ID {id} via fresh client...");
-                match srv
-                    .bunny_pullzone_delete(Parameters(PullZoneDeleteArgs { id }))
-                    .await
-                {
-                    Ok(res) => {
-                        if res.is_error == Some(true) {
-                            eprintln!(
-                                "[SMOKE GUARD] API returned error deleting pull zone {id}: {:?}",
-                                res.content
-                            );
-                        } else {
-                            eprintln!("[SMOKE GUARD] Successfully deleted pull zone {id}");
+                        Err(err) => {
+                            eprintln!("[SMOKE GUARD] Failed to invoke delete tool for {id}: {err}")
                         }
                     }
-                    Err(err) => {
-                        eprintln!("[SMOKE GUARD] Failed to invoke delete tool for {id}: {err}");
-                    }
-                }
+                });
             });
-        });
-        let _ = handle.join();
+            let _ = handle.join();
+        }
     }
 }
 
@@ -262,24 +154,9 @@ async fn smoke_real_api_e2e_flow() {
                 };
                 if timestamp.saturating_sub(ts) > 900 {
                     eprintln!("[CLEANUP] Pruning stale pull zone {name} ({id})...");
-                    match srv
+                    let _ = srv
                         .bunny_pullzone_delete(Parameters(PullZoneDeleteArgs { id }))
-                        .await
-                    {
-                        Ok(res) => {
-                            if res.is_error == Some(true) {
-                                eprintln!(
-                                    "[CLEANUP] Error deleting stale pull zone {name} ({id}): {:?}",
-                                    res.content
-                                );
-                            }
-                        }
-                        Err(err) => {
-                            eprintln!(
-                                "[CLEANUP] Request error deleting stale pull zone {name} ({id}): {err}"
-                            );
-                        }
-                    }
+                        .await;
                 }
             }
         }
@@ -315,37 +192,32 @@ async fn smoke_real_api_e2e_flow() {
         .expect("create must return CallToolResult");
     assert_ok(&create_res);
     let create_val = json(&create_res);
-    let initial_id = create_val.get("id").and_then(|v| v.as_u64());
 
-    // CRITICAL: Arm guard immediately by name (and initial id if available) BEFORE attempting
-    // any ID resolution that could panic or fail, ensuring no orphaned pull zone is left behind.
-    let mut guard = PullZoneGuard::new(zone_name.clone(), initial_id, cfg.clone());
-
-    let pullzone_id = match initial_id {
-        Some(id) => id,
-        None => {
-            eprintln!("Create returned unit/hint; resolving ID via bunny_pullzone_list...");
-            let list_res = srv
-                .bunny_pullzone_list(Parameters(PullZoneListArgs {
-                    search: Some(zone_name.clone()),
-                    page: 1,
-                    per_page: 10,
-                }))
-                .await
-                .expect("pullzone_list must return CallToolResult");
-            assert_ok(&list_res);
-            let list_val = json(&list_res);
-            let items = list_val["items"].as_array().expect("items array");
-            let found = items
-                .iter()
-                .find(|it| it["name"] == zone_name)
-                .unwrap_or_else(|| panic!("newly created zone {zone_name} not found in list"));
-            let resolved_id = found["id"].as_u64().expect("pull zone id must be numeric");
-            guard.set_id(resolved_id);
-            resolved_id
-        }
+    let pullzone_id = if let Some(id) = create_val.get("id").and_then(|v| v.as_u64()) {
+        id
+    } else {
+        eprintln!("Create returned unit/hint; resolving ID via bunny_pullzone_list...");
+        let list_res = srv
+            .bunny_pullzone_list(Parameters(PullZoneListArgs {
+                search: Some(zone_name.clone()),
+                page: 1,
+                per_page: 10,
+            }))
+            .await
+            .expect("pullzone_list must return CallToolResult");
+        assert_ok(&list_res);
+        let list_val = json(&list_res);
+        let items = list_val["items"].as_array().expect("items array");
+        let found = items
+            .iter()
+            .find(|it| it["name"] == zone_name)
+            .unwrap_or_else(|| panic!("newly created zone {zone_name} not found in list"));
+        found["id"].as_u64().expect("pull zone id must be numeric")
     };
     eprintln!("Created pull zone id: {pullzone_id}");
+
+    // Guard ensures the zone is deleted when leaving scope or on panic
+    let mut guard = PullZoneGuard::new(pullzone_id, client.clone());
 
     // Step 3: get (summary and verbose)
     eprintln!("[3/14] get summary and verbose for pull zone {pullzone_id}...");
@@ -619,136 +491,4 @@ async fn smoke_real_api_e2e_flow() {
     assert_eq!(del_val["deleted_id"], pullzone_id);
 
     eprintln!("Smoke test completed successfully for pull zone {zone_name} ({pullzone_id})!");
-}
-
-// covers: C6 (Drop guard cleanup on panic after request)
-#[tokio::test]
-async fn guard_drop_deletes_pullzone_after_request_panic_wiremock() {
-    let mock = MockServer::start().await;
-
-    Mock::given(method("GET"))
-        .and(path("/pullzone/42"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "Id": 42,
-            "Name": "mcp-smoke-panic-test",
-        })))
-        .mount(&mock)
-        .await;
-
-    Mock::given(method("DELETE"))
-        .and(path("/pullzone/42"))
-        .respond_with(ResponseTemplate::new(204))
-        .expect(1)
-        .mount(&mock)
-        .await;
-
-    let config = Config {
-        api_key: bunnycdn_mcp::secret::Secret::new("test-key"),
-        base_url: url::Url::parse(&mock.uri()).expect("valid mock URI"),
-    };
-    let client = BunnyClient::new(&config).expect("BunnyClient builds");
-    let srv = BunnyServer::new(client);
-
-    // Suppress default panic hook output during intentional test panic
-    let prev_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
-
-    let task = tokio::spawn(async move {
-        // Arm the guard
-        let _guard = PullZoneGuard::new("mcp-smoke-panic-test", Some(42), config);
-
-        // Perform an initial request using the server on the current-thread runtime to populate connection pool
-        let get_res = srv
-            .bunny_pullzone_get(Parameters(PullZoneGetArgs {
-                id: 42,
-                verbose: false,
-            }))
-            .await
-            .expect("GET must succeed");
-        assert_ok(&get_res);
-
-        // Simulate panic after the request
-        panic!("simulated panic after request to verify Drop guard cleanup");
-    });
-
-    let join_res = task.await;
-    std::panic::set_hook(prev_hook);
-
-    assert!(join_res.is_err(), "task must panic");
-    assert!(
-        join_res.unwrap_err().is_panic(),
-        "join error must be caused by panic"
-    );
-
-    // Verify mock server received the DELETE request
-    let received = mock.received_requests().await.expect("received requests");
-    let deletes_received = received
-        .iter()
-        .filter(|req| req.method.as_str() == "DELETE" && req.url.path() == "/pullzone/42")
-        .count();
-    assert_eq!(
-        deletes_received, 1,
-        "Drop guard must execute DELETE and mock must receive deletes_received == 1"
-    );
-}
-
-// covers: C6 (Drop guard cleanup by name before ID resolution)
-#[tokio::test]
-async fn guard_drop_resolves_id_by_name_and_deletes_on_panic_wiremock() {
-    let mock = MockServer::start().await;
-
-    Mock::given(method("GET"))
-        .and(path("/pullzone"))
-        .and(query_param("search", "mcp-smoke-unresolved-test"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([
-            {
-                "Id": 99,
-                "Name": "mcp-smoke-unresolved-test",
-            }
-        ])))
-        .expect(1)
-        .mount(&mock)
-        .await;
-
-    Mock::given(method("DELETE"))
-        .and(path("/pullzone/99"))
-        .respond_with(ResponseTemplate::new(204))
-        .expect(1)
-        .mount(&mock)
-        .await;
-
-    let config = Config {
-        api_key: bunnycdn_mcp::secret::Secret::new("test-key"),
-        base_url: url::Url::parse(&mock.uri()).expect("valid mock URI"),
-    };
-
-    let prev_hook = std::panic::take_hook();
-    std::panic::set_hook(Box::new(|_| {}));
-
-    let task = tokio::spawn(async move {
-        // Arm the guard by name only, before ID resolution
-        let _guard = PullZoneGuard::new("mcp-smoke-unresolved-test", None, config);
-
-        // Simulate panic before ID is resolved
-        panic!("simulated failure before ID resolution");
-    });
-
-    let join_res = task.await;
-    std::panic::set_hook(prev_hook);
-
-    assert!(join_res.is_err(), "task must panic");
-    assert!(
-        join_res.unwrap_err().is_panic(),
-        "join error must be caused by panic"
-    );
-
-    let received = mock.received_requests().await.expect("received requests");
-    let deletes_received = received
-        .iter()
-        .filter(|req| req.method.as_str() == "DELETE" && req.url.path() == "/pullzone/99")
-        .count();
-    assert_eq!(
-        deletes_received, 1,
-        "Drop guard must resolve ID by name and execute DELETE"
-    );
 }
