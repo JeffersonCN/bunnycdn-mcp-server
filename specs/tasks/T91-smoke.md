@@ -1,6 +1,6 @@
 # T91 — Smoke tests contra a API real
 
-> **Status:** changes-requested  ·  **Agente:** antigravity (gemini-3.8-flash-high; correção por claude-sonnet-5.5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
+> **Status:** blocked  ·  **Agente:** antigravity (gemini-3.8-flash-high; correção por claude-sonnet-5.5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -74,23 +74,6 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
-
-### Rodada 1 — 2026-10-14 — rev-T91: claude-opus-5-5/Anthropic
-**Veredito:** changes-requested
-**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`; `smoke_real_api_e2e_flow` termina em 0,00 s sem `BUNNY_API_KEY`)
-
-Verificado e OK: B1 (T11, T12, T20, T30, T40, T50 e T60 estão `done`); B2/B3 (o diff contra `main` só toca `tests/smoke.rs`, `docs/api-quirks.md` e o arquivo da task); prefixo `mcp-smoke-` (C6). Com a key ausente ou vazia, o teste retorna antes de qualquer I/O. O CI (`.github/workflows/ci.yml`) não define `BUNNY_API_KEY`, então o teste fica inerte no CI e no gate. B12: a key nunca é impressa; só aparecem IDs, nomes e textos de erro já redigidos pelo cliente.
-
-**Bloqueantes:**
-- Critério 2 / C6 ("remove ao final, mesmo em falha") `tests/smoke.rs:63-103`: o `Drop` de `PullZoneGuard` **não consegue apagar a zona**. Ele reaproveita o `BunnyClient` (reqwest) do runtime do teste num runtime novo, criado em outra thread, enquanto a thread do teste fica bloqueada em `handle.join()`. As conexões do pool têm a tarefa de I/O presa ao runtime bloqueado (`#[tokio::test]` é current-thread), então o DELETE nunca sai e falha após os 30 s de timeout. Reproduzi numa cópia descartável com wiremock: um GET seguido de `drop(guard)` deu `elapsed=30.004s`, `deletes_received=0` e o resultado foi `"Bunny API did not respond within 30s..."`. Ou seja, justamente no caminho de pânico a zona fica órfã. Correção sugerida: no `Drop`, criar um `BunnyClient` **novo** (`Config::load(None)` + `BunnyClient::new`) dentro da thread ou do runtime de limpeza, em vez de `self.client.clone()`. Outra opção é rodar o fluxo dentro de `tokio::spawn`/`catch_unwind` e apagar de forma assíncrona no mesmo runtime. Depois, cobrir isso com um teste wiremock que simule pânico após uma requisição.
-- Critério 2 `tests/smoke.rs:181-220`: o guard só é armado depois que o ID é resolvido. Se o `create` funcionar mas a resolução falhar (resposta vazia + `pullzone_list` sem o item ou com erro → `expect`/`panic!`), a zona fica órfã até a limpeza de "stale" (> 15 min) de uma execução futura. Arme o guard por **nome** logo após o create (resolvendo o ID no drop, se preciso) ou resolva o ID sem caminhos de pânico antes de armar.
-- Critérios 2 e 3 sem evidência (§3 do checklist): nenhuma execução real foi registrada. O commit `63d3a06`, feito durante esta revisão, já desmarcou as caixas, mudou a task para `blocked` e marcou `docs/api-quirks.md` como "NÃO validado". A pendência continua: rodar `BUNNY_API_KEY=… cargo test --test smoke -- --nocapture`, confirmar que nenhuma `mcp-smoke-*` sobrou, confirmar `ToggleRequestModel.Id` (T40), `GeoTrafficDistribution` e os corpos de create/update, e reescrever o quirks com o que for observado. Status `changes-requested` (e não `blocked`) porque os dois bugs do guard acima são do código e devem ser corrigidos antes da execução real, já que é ela que comprova "não deixa órfã".
-
-**Não bloqueantes:**
-- N1 A limpeza de zonas "stale" (`tests/smoke.rs:130-163`) só olha a página 1, com `per_page: 100`, e ignora erros de delete em silêncio. Vale imprimir o resultado em stderr.
-- N1 Se `delete_explicitly` voltar `is_error`, o `assert_ok` entra em pânico e o `Drop` tenta de novo. É o comportamento desejado, mas com o bug acima essa nova tentativa também falha.
-- N3 Para `edgerule_upsert`, a regra é localizada pela `Description` única (`smoke-rule-<ts>`), o que está correto. Vale registrar no Log se a API real devolveu corpo ou não, para confirmar o quirk 5.
-- Nota ao orquestrador: com `BUNNY_API_KEY` exportada no shell (comum em quem desenvolve este projeto), o gate local `cargo test --workspace` executa o smoke contra a API real. Isso segue o entregável 1 ("não usar `#[ignore]`"), mas contraria a expectativa de que o gate seja offline. Para mudar, abra uma CR na task ou na constituição (por exemplo, exigir também `BUNNY_SMOKE=1`).
 
 ## Change requests
 - Todas as particularidades de comportamento da API real identificadas já foram incorporadas aos contratos em `specs/tools/` durante as tasks da Onda 1 ou registradas em CR-1 (em `specs/tasks/T60-reference.md`). Nenhuma nova alteração em arquivos congelados ou contratos é necessária nesta etapa.
