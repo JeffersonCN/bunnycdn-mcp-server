@@ -88,3 +88,7 @@ lto = "fat"
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# cargo-dist builds with `--profile dist` (CR-02 da T80): herda do release.
+[profile.dist]
+inherits = "release"

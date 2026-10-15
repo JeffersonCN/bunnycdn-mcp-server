@@ -139,3 +139,11 @@ diff --git a/xtask/Cargo.toml b/xtask/Cargo.toml
 +
  [dependencies]
 ```
+
+### CR-02: Adicionar perfil `[profile.dist]` ao Cargo.toml
+- **Status:** Aceita e aplicada pelo orquestrador (2026-10-15), com autorização explícita do usuário para o lançamento da versão 0.1.0.
+- **Motivo:** O primeiro disparo real do workflow de release (tag `v0.1.0`, run `38676005729`) falhou em todos os jobs `build-local-artifacts` com `error: profile dist is not defined`. O cargo-dist compila com `--profile dist`, e o perfil não existia. O `dist plan` passou localmente porque só planeja e não compila, então a falha não apareceu antes. Nenhuma release nem artefato foi publicado.
+- **Arquivos afetados:** `Cargo.toml` (arquivo congelado, coberto por esta CR).
+- **Diff aplicado:** adiciona após `[profile.release]` o bloco `[profile.dist]` com `inherits = "release"`. O `strip = true` continua no `[profile.release]`.
+- **Verificação:** `cargo build --profile dist --bin bunnycdn-mcp --locked` concluiu com sucesso e gerou um binário de 4 171 904 B, idêntico ao release. Gate verde (`fmt`, `clippy`, `cargo test` com 183 testes, `codegen --check`).
+- **Observação:** durante a edição, a inserção partiu o `[profile.release]` e moveu `strip = true` para o perfil dist. Foi corrigido antes do commit, restaurando o arquivo e inserindo o bloco após o release.
