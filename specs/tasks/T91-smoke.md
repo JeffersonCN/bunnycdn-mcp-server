@@ -1,6 +1,6 @@
 # T91 — Smoke tests contra a API real
 
-> **Status:** approved  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
+> **Status:** review  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -114,29 +114,6 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
-
-### Rodada 3 — 2026-10-14 — rev-T91: claude-opus-5-5/Anthropic
-**Veredito:** approved (com pendência de execução real; ver abaixo)
-**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`, com `env -u BUNNY_API_KEY`; lib 60 testes, smoke 5)
-
-Verificado e OK: B1 (dependências seguem `done`). B2/B3: o diff contra `main` toca `tests/smoke.rs`, `docs/api-quirks.md`, o arquivo da task e `src/model/pullzone.rs`. Este último é congelado (T11), mas está coberto pela CR-T91-3 registrada. `Cargo.toml`, `Cargo.lock` e `src/generated.rs` estão intactos (diff vazio). O commit `fff24a1` não toca `docs/api-quirks.md`. B14: os testes novos usam só wiremock.
-
-**Itens da rodada 3:**
-- ✓ CR-T91-3 (`src/model/pullzone.rs:116-120`): o `non_negative_id` lê `Option<i64>` e faz `u64::try_from(..).ok()`, então valores negativos, `null` e campos ausentes viram `None` (há `#[serde(default)]`). Ele está aplicado exatamente a `Id`, `StorageZoneId`, `EdgeScriptId`, `MiddlewareScriptId` e `LoadBalancerId` de `RawPullZone` e a `Id` de `RawHostname`. Tipos públicos (`Option<u64>`), outros campos e `compute_origin` não mudaram. Só foi acrescentado o import `Deserializer` do `serde`, sem dependência nova. Os testes unitários cobrem `-1`, `0`, positivo, `null`/ausente e `PullZoneSummary::from_value` com IDs `-1`, nos 6 campos.
-- ✓ Guard armado antes da decodificação (`tests/smoke.rs:208-235, 329-348`): `create_zone_guarded` cria o `PullZoneGuard` pelo nome logo depois que o `.await` de `bunny_pullzone_create` retorna, antes do `expect`, do `assert_ok` e de qualquer leitura do corpo. O ID só é preenchido quando a resposta é sucesso com `id > 0`. **Teste de mutação:** numa cópia descartável (em `/tmp`, já removida) pus um `assert_ok` antes de armar o guard, reproduzindo a ordem antiga. Com isso, `guard_armed_before_create_decode_deletes_zone_wiremock` **falha** e os outros 4 testes passam. O teste discrimina de fato.
-- ✓ Resolução de ID por nome sem decodificação (`:184-203`): `find_zone_id_raw` faz `GET /pullzone` pelo `BunnyClient` e lê `serde_json::Value` cru, aceitando tanto array quanto `{Items}`. Exige nome exato e ignora ID ≤ 0. É usado no fluxo principal (`:340`), em `delete_explicitly` (`:68`) e no `Drop` (`:136`, com cliente novo). O teste `find_zone_id_raw_ignores_negative_ids_and_other_names_wiremock` cobre ID `-1` e nome parecido. Isso também resolve o N2 da rodada 2 (duplicação).
-- ✓ B12: `BUNNY_API_KEY` só é lida em `:243` e usada em `key.trim()`. Não aparece em nenhum `eprintln!`, e `Config`/`Secret` têm `Debug` redigido.
-- ✓ Inércia sem key: com `env -u BUNNY_API_KEY`, `smoke_real_api_e2e_flow` retorna antes de qualquer I/O. Os testes wiremock usam só `127.0.0.1`.
-
-**Pendência do usuário (não bloqueante para o código; bloqueia `done`):**
-- Rodar `BUNNY_API_KEY=… cargo test --test smoke -- --nocapture --test-threads=1` e confirmar que o fluxo passa e que nenhuma `mcp-smoke-*` sobra.
-- Remover a zona órfã **`mcp-smoke-1792029815`** da execução que falhou: à mão no painel ou deixando a limpeza de stale (> 15 min, página 1 de `search=mcp-smoke-`) da próxima execução apagá-la. Depois, confirmar que ela sumiu.
-- Com a execução real: confirmar `ToggleRequestModel.Id` (T40), o formato de `GeoTrafficDistribution` e se create/update devolvem corpo. Em seguida, reescrever `docs/api-quirks.md` com o observado, incluindo o quirk real "IDs `-1` = sem valor" e removendo o aviso de "NÃO validado", e só então marcar os critérios 2 e 3. As caixas desses critérios **continuam desmarcadas**.
-
-**Não bloqueantes:**
-- N1 `non_negative_id` lê `i64`, então um ID positivo acima de `i64::MAX` passaria a falhar onde antes `u64` aceitava. Na prática isso não acontece com IDs da Bunny, mas fica registrado.
-- N1 O hook de pânico global trocado nos dois testes wiremock da rodada 2 continua lá (N1 da rodada 2). O novo teste não mexe no hook. Recomenda-se `--test-threads=1` na execução real.
-- N3 O quirk "`-1` em campos de ID" foi observado na API real e ainda não está em `docs/api-quirks.md`. Ele deve entrar na reescrita pós-execução.
 
 ### Rodada 2 — 2026-10-14 — rev-T91: claude-opus-5-5/Anthropic
 **Veredito:** approved (com pendência de execução real; ver abaixo)
