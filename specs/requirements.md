@@ -107,7 +107,7 @@ Load Balancer, Logging API, autenticação cliente→MCP, modo read-only, multi-
 
 ## REQ-NF — Não funcionais
 - **REQ-NF-01** Metas de leveza da constituição C1.
-- **REQ-NF-02** `tools/list` completo ≤ **20 KB** de JSON (proxy de custo em tokens). Teto provisório (CR-02 da T90, decisão do usuário em 2026-10-14); o alvo original era 12 KB e segue como meta de redução de schema, a reavaliar após a T92.
+- **REQ-NF-02** `tools/list` completo ≤ **20 KB** de JSON (proxy de custo em tokens). Teto definitivo para a versão 0.1.0 (decisão do usuário em 2026-10-15, opção C da CR-02 da T90). O teto original de 12 KB não é atendido: o payload medido é 17,6 KB, com o peso concentrado em `inputSchema`, que exigiria reescrever contratos já aprovados. A redução fica registrada como melhoria futura, sem prazo.
 - **REQ-NF-03** Binários para macOS arm64/x64 e Linux x64/arm64 (musl, estático).
 - **REQ-NF-04** Imagem Docker `FROM scratch` ≤ 15 MB, rodando em modo HTTP.
 - **REQ-NF-05** Fórmula Homebrew instalável via tap.
