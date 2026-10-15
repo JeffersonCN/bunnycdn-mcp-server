@@ -1,6 +1,6 @@
 # T92 — Medição de leveza, ajuste de dependências e README
 
-> **Status:** approved  ·  **Agente:** claude-opus-5-5 (Maestro task/T92-hardening)  ·  **Branch:** `task/T92-hardening`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** claude-opus-5-5 (Maestro task/T92-hardening)  ·  **Branch:** `task/T92-hardening`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível B · outro fornecedor
 
