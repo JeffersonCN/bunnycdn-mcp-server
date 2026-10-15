@@ -1,6 +1,6 @@
 # T91 — Smoke tests contra a API real
 
-> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
+> **Status:** review  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -84,30 +84,6 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
-
-### Rodada 2 — 2026-10-14 — rev-T91: claude-opus-5-5/Anthropic
-**Veredito:** approved (com pendência de execução real; ver abaixo)
-**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace`, com `BUNNY_API_KEY` ausente no ambiente)
-
-Verificado e OK: B1 (dependências seguem `done`); B2/B3 (o diff contra `main` só toca `tests/smoke.rs`, `docs/api-quirks.md` e o arquivo da task; o commit de correção `64b65b3` só toca `tests/smoke.rs` e o arquivo da task); B14 (os dois testes novos usam só wiremock).
-
-**Bloqueantes da rodada 1, conferidos um a um:**
-- ✓ `PullZoneGuard::drop` com cliente novo (`tests/smoke.rs:105-211`): o guard guarda só `Config` (não guarda mais `BunnyClient`) e, na thread de limpeza, cria runtime próprio + `BunnyClient::new(&config)` + `BunnyServer`. Nenhuma conexão do pool do runtime bloqueado é reaproveitada.
-- ✓ Teste de pânico (`guard_drop_deletes_pullzone_after_request_panic_wiremock`, `:624-693`): faz um GET pelo cliente do teste num runtime current-thread, entra em pânico dentro de `tokio::spawn` e verifica `deletes_received == 1` (além de `.expect(1)` no mock). Roda em ~0,01 s, contra os 30 s de timeout da rodada 1. Isso reproduz o cenário que falhava antes.
-- ✓ Guard armado por nome logo após o create (`:316-347`): `PullZoneGuard::new(zone_name, initial_id, cfg)` vem imediatamente após `assert_ok(&create_res)` e antes de qualquer `expect`/`panic!` da resolução de ID. O `Drop` resolve o ID via `bunny_pullzone_list` com o cliente novo (`:136-187`). O caso é coberto por `guard_drop_resolves_id_by_name_and_deletes_on_panic_wiremock` (`:695-754`), com list e DELETE ambos `.expect(1)`.
-- N1 (rodada 1) ✓: os erros de delete das zonas stale saem em stderr, tanto o `is_error` quanto o erro de requisição (`:265-282`).
-- B12 ✓: a key não aparece em nenhum `eprintln!`. `Config` só deriva `Debug`, e `Secret` tem `Debug`/`Display` redigidos (`src/secret.rs:20-30`). Os logs do guard trazem só nome, ID e `content` de resultados que o cliente já redige.
-- Inércia sem key ✓: com `env -u BUNNY_API_KEY` e com `BUNNY_API_KEY="  "`, `smoke_real_api_e2e_flow` retorna em 0,00 s, antes de qualquer I/O. Os dois testes wiremock rodam sempre, mas só usam `127.0.0.1`.
-
-**Pendência do usuário (não bloqueante nesta rodada):**
-- Critérios 2 e 3 continuam **sem evidência real**: não há `BUNNY_API_KEY` disponível para o revisor nem para o implementador. O código que sustenta o critério 2 (limpeza garantida) está correto e coberto por wiremock. O cumprimento final depende só da execução real, por isso o `approved` vem com esta pendência explícita, e as caixas dos critérios 2 e 3 **continuam desmarcadas**. Antes de marcar `done`, o orquestrador ou o usuário deve: rodar `BUNNY_API_KEY=… cargo test --test smoke -- --nocapture --test-threads=1`; confirmar que nenhuma `mcp-smoke-*` sobrou; confirmar `ToggleRequestModel.Id` (T40), o formato de `GeoTrafficDistribution` e se create/update devolvem corpo; reescrever `docs/api-quirks.md` com o que for observado (removendo o aviso de "NÃO validado") e abrir as CRs cabíveis.
-
-**Não bloqueantes:**
-- N1 Os dois testes wiremock trocam o panic hook **global** (`take_hook`/`set_hook`, `:653-675` e `:725-737`). Como os testes do binário rodam em paralelo, a ordem take/set/restore pode se cruzar e deixar o hook silencioso instalado. Com key presente, um pânico real de `smoke_real_api_e2e_flow` sairia sem mensagem. Sugestão: não mexer no hook (o libtest já captura a saída) ou rodar o smoke com `--test-threads=1`, como indicado acima.
-- N1 A limpeza de stale ainda olha só a página 1 (`per_page: 100`). Isso é aceitável enquanto o volume de `mcp-smoke-*` for baixo.
-- N2 A busca por nome via `bunny_pullzone_list` está duplicada entre `delete_explicitly` (`:65-91`) e `Drop` (`:136-180`). Caberia num helper, mas a diferença de parsing (`json()` contra o parse manual) é justificável no `Drop`, que não pode entrar em pânico.
-- Observação ao orquestrador (escopo): o commit da rodada anterior citado como `63d3a06` (hoje `cc3d811`, `docs(smoke): mark T91 blocked, flag api-quirks as unverified`, depois de reescrita do histórico) alterou `docs/api-quirks.md` e o arquivo da task **durante a revisão da rodada 1**, fora do papel do revisor e sem ser commit do implementador da vez. O arquivo é possuído pela T91 e a mudança só acrescenta um aviso de "não validado", então o conteúdo é inofensivo. Mesmo assim, registro o desvio de processo para que o orquestrador decida se o mantém.
-- Mantém-se a nota da rodada 1: com `BUNNY_API_KEY` exportada no shell, o gate local executa o smoke contra a API real.
 
 ### Rodada 1 — 2026-10-14 — rev-T91: claude-opus-5-5/Anthropic
 **Veredito:** changes-requested
