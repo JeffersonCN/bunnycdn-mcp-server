@@ -16,7 +16,7 @@ and certificates, edge rules, cache purges and statistics on your Bunny account.
 
 > [!NOTE]
 > Prebuilt artifacts (Homebrew, release binaries, Docker image) are **not published yet**. The
-> release pipeline (`.github/workflows/release.yml`, `dist-workspace.toml`) still uses the `OWNER`
+> release pipeline (`.github/workflows/release.yml`, `dist-workspace.toml`) still uses the `JeffersonCN`
 > placeholder for the GitHub user/org. Until it is replaced and a `v*` tag is released, build from
 > source. See [docs/release.md](docs/release.md).
 
@@ -50,23 +50,23 @@ docker run --rm -p 127.0.0.1:8080:8080 -e BUNNY_API_KEY="your-key" bunnycdn-mcp
 curl http://127.0.0.1:8080/healthz   # -> ok
 ```
 
-*Pending (`OWNER` placeholder):* `ghcr.io/OWNER/bunnycdn-mcp:latest`, published for
+*Pending (`JeffersonCN` placeholder):* `ghcr.io/JeffersonCN/bunnycdn-mcp:latest`, published for
 `linux/amd64` and `linux/arm64` by the release workflow.
 
-### Homebrew — pending (`OWNER` placeholder)
+### Homebrew — pending (`JeffersonCN` placeholder)
 
 ```bash
-brew install OWNER/homebrew-tap/bunnycdn-mcp
+brew install JeffersonCN/homebrew-tap/bunnycdn-mcp
 ```
 
-### Release binaries — pending (`OWNER` placeholder)
+### Release binaries — pending (`JeffersonCN` placeholder)
 
 Releases will ship `tar.xz` archives (with `.sha256`) for `aarch64-apple-darwin`,
 `x86_64-apple-darwin`, `x86_64-unknown-linux-musl` and `aarch64-unknown-linux-musl`, plus a shell
 installer:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OWNER/bunnycdn-mcp/releases/latest/download/bunnycdn-mcp-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/JeffersonCN/bunnycdn-mcp/releases/latest/download/bunnycdn-mcp-installer.sh | sh
 ```
 
 ## Configuration

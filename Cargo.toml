@@ -9,8 +9,8 @@ edition = "2024"
 rust-version = "1.88"
 description = "Lightweight MCP server for operating the bunny.net CDN"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/OWNER/bunnycdn-mcp"
-homepage = "https://github.com/OWNER/bunnycdn-mcp"
+repository = "https://github.com/JeffersonCN/bunnycdn-mcp"
+homepage = "https://github.com/JeffersonCN/bunnycdn-mcp"
 publish = false
 
 [lib]

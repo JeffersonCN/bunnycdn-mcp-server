@@ -15,9 +15,9 @@ A cada release publicada a partir de uma tag `v*` (ex.: `v0.1.0`), o pipeline au
    - `aarch64-unknown-linux-musl` (Linux arm64 estático)
 2. **Instaladores:**
    - Script shell (`bunnycdn-mcp-installer.sh`)
-   - Fórmula Homebrew (`bunnycdn-mcp.rb`) enviada automaticamente para o tap `OWNER/homebrew-tap`
+   - Fórmula Homebrew (`bunnycdn-mcp.rb`) enviada automaticamente para o tap `JeffersonCN/homebrew-tap`
 3. **Imagem Docker multi-arch (`linux/amd64` e `linux/arm64`):**
-   - Publicada no GitHub Packages (GHCR): `ghcr.io/OWNER/bunnycdn-mcp`
+   - Publicada no GitHub Packages (GHCR): `ghcr.io/JeffersonCN/bunnycdn-mcp`
    - Base `FROM scratch` com musl estático e certificados raiz (`ca-certificates.crt`), tamanho ≤ 15 MB (REQ-NF-04).
 
 ---
@@ -29,10 +29,10 @@ O workflow `.github/workflows/release.yml` utiliza os seguintes segredos:
 | Segredo | Origem | Descrição |
 |---|---|---|
 | `GITHUB_TOKEN` | Automático (Actions) | Usado para criar a GitHub Release, anexar artefatos e autenticar no GitHub Container Registry (`ghcr.io`). Requer permissões `contents: write` (global) e `packages: write` (no job `publish-docker`) configuradas no workflow. |
-| `HOMEBREW_TAP_TOKEN` | Manual (Settings → Secrets) | Personal Access Token (PAT) clássico com escopo `repo`, ou Fine-grained PAT com permissão de escrita em `Contents` no repositório do tap (`OWNER/homebrew-tap`). Permite que o workflow faça commit da fórmula atualizada no repositório do tap. |
+| `HOMEBREW_TAP_TOKEN` | Manual (Settings → Secrets) | Personal Access Token (PAT) clássico com escopo `repo`, ou Fine-grained PAT com permissão de escrita em `Contents` no repositório do tap (`JeffersonCN/homebrew-tap`). Permite que o workflow faça commit da fórmula atualizada no repositório do tap. |
 
 > [!NOTE]
-> O placeholder `OWNER` em `dist-workspace.toml`, `release.yml` e neste documento deve ser substituído pelo usuário/organização real do GitHub onde os repositórios estão hospedados.
+> O placeholder `JeffersonCN` em `dist-workspace.toml`, `release.yml` e neste documento deve ser substituído pelo usuário/organização real do GitHub onde os repositórios estão hospedados.
 
 ---
 
@@ -63,7 +63,7 @@ O workflow `.github/workflows/release.yml` utiliza os seguintes segredos:
    - `build-local-artifacts`: compila os 4 targets em paralelo.
    - `build-global-artifacts`: gera checksums e instaladores.
    - `host`: cria a GitHub Release e sobe os arquivos.
-   - `publish-homebrew-formula`: envia a fórmula `.rb` para `OWNER/homebrew-tap`.
+   - `publish-homebrew-formula`: envia a fórmula `.rb` para `JeffersonCN/homebrew-tap`.
    - `publish-docker`: compila a imagem Docker multi-arch via QEMU/Buildx e publica no GHCR.
    - `announce`: finaliza a pipeline.
 
@@ -73,12 +73,12 @@ O workflow `.github/workflows/release.yml` utiliza os seguintes segredos:
 
 ### 4.1. Via Script Shell
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/OWNER/bunnycdn-mcp/releases/latest/download/bunnycdn-mcp-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/JeffersonCN/bunnycdn-mcp/releases/latest/download/bunnycdn-mcp-installer.sh | sh
 ```
 
 ### 4.2. Via Homebrew
 ```bash
-brew install OWNER/homebrew-tap/bunnycdn-mcp
+brew install JeffersonCN/homebrew-tap/bunnycdn-mcp
 ```
 
 ### 4.3. Via Docker (Streamable HTTP)
@@ -89,7 +89,7 @@ docker run -d \
   --name bunnycdn-mcp \
   -p 8080:8080 \
   -e BUNNY_API_KEY="seu-token-aqui" \
-  ghcr.io/OWNER/bunnycdn-mcp:latest \
+  ghcr.io/JeffersonCN/bunnycdn-mcp:latest \
   --allowed-host "meu-host.example.com"
 ```
 
