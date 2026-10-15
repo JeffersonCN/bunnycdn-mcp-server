@@ -1,6 +1,6 @@
 # T91 — Smoke tests contra a API real
 
-> **Status:** approved  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
+> **Status:** done  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
