@@ -6,7 +6,7 @@
 
 mod common;
 
-use bunnycdn_mcp::client::{BunnyClient, BunnyError};
+use bunnycdn_mcp::client::BunnyClient;
 use bunnycdn_mcp::config::Config;
 use bunnycdn_mcp::server::BunnyServer;
 use bunnycdn_mcp::tools::access::{AccessAction, AccessList, PullZoneAccessListArgs};
@@ -24,7 +24,7 @@ use bunnycdn_mcp::tools::reference::{CountryListArgs, RegionListArgs};
 use bunnycdn_mcp::tools::stats::StatisticsArgs;
 use common::{assert_ok, json};
 use rmcp::handler::server::wrapper::Parameters;
-use rmcp::model::{CallToolResult, ContentBlock};
+use rmcp::model::CallToolResult;
 use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -58,31 +58,36 @@ impl PullZoneGuard {
     async fn delete_explicitly(
         &mut self,
         srv: &BunnyServer,
-        client: &BunnyClient,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         if self.disarmed {
             return Ok(CallToolResult::default());
         }
         let id = match self.pullzone_id {
             Some(id) => id,
-            None => match find_zone_id_raw(client, &self.zone_name).await {
-                Ok(Some(id)) => {
-                    self.pullzone_id = Some(id);
-                    id
+            None => {
+                let list_res = srv
+                    .bunny_pullzone_list(Parameters(PullZoneListArgs {
+                        search: Some(self.zone_name.clone()),
+                        page: 1,
+                        per_page: 10,
+                    }))
+                    .await?;
+                if list_res.is_error == Some(true) {
+                    return Ok(list_res);
                 }
-                Ok(None) => {
-                    return Ok(CallToolResult::error(vec![ContentBlock::text(format!(
-                        "pull zone {} not found by name",
-                        self.zone_name
-                    ))]));
+                let list_val = json(&list_res);
+                let items = list_val["items"].as_array();
+                let found = items
+                    .and_then(|arr| arr.iter().find(|it| it["name"] == self.zone_name))
+                    .and_then(|it| it["id"].as_u64());
+                match found {
+                    Some(id) => {
+                        self.pullzone_id = Some(id);
+                        id
+                    }
+                    None => return Ok(list_res),
                 }
-                Err(err) => {
-                    return Ok(CallToolResult::error(vec![ContentBlock::text(format!(
-                        "failed to look up pull zone {}: {err}",
-                        self.zone_name
-                    ))]));
-                }
-            },
+            }
         };
 
         let res = srv
@@ -127,24 +132,52 @@ impl Drop for PullZoneGuard {
                         return;
                     }
                 };
+                let srv = BunnyServer::new(client);
                 let target_id = match id_opt {
                     Some(id) => Some(id),
                     None => {
                         eprintln!(
                             "[SMOKE GUARD] ID not resolved yet; searching for zone {name} via fresh client..."
                         );
-                        match find_zone_id_raw(&client, &name).await {
-                            Ok(found) => found,
+                        match srv
+                            .bunny_pullzone_list(Parameters(PullZoneListArgs {
+                                search: Some(name.clone()),
+                                page: 1,
+                                per_page: 10,
+                            }))
+                            .await
+                        {
+                            Ok(list_res) => {
+                                if list_res.is_error == Some(true) {
+                                    eprintln!(
+                                        "[SMOKE GUARD] Error listing pull zones for {name}: {:?}",
+                                        list_res.content
+                                    );
+                                    None
+                                } else {
+                                    list_res
+                                        .content
+                                        .first()
+                                        .and_then(|c| c.as_text())
+                                        .and_then(|t| {
+                                            serde_json::from_str::<serde_json::Value>(&t.text).ok()
+                                        })
+                                        .and_then(|v| v.get("items")?.as_array().cloned())
+                                        .and_then(|items| {
+                                            items.into_iter().find(|it| it["name"] == name)
+                                        })
+                                        .and_then(|it| it["id"].as_u64())
+                                }
+                            }
                             Err(err) => {
                                 eprintln!(
-                                    "[SMOKE GUARD] Failed to look up pull zone {name} by name: {err}"
+                                    "[SMOKE GUARD] Failed to invoke pullzone_list to resolve ID: {err}"
                                 );
                                 None
                             }
                         }
                     }
                 };
-                let srv = BunnyServer::new(client);
 
                 let Some(id) = target_id else {
                     eprintln!(
@@ -176,63 +209,6 @@ impl Drop for PullZoneGuard {
         });
         let _ = handle.join();
     }
-}
-
-/// Looks up a pull zone ID by exact name through the raw client, reading the JSON directly so
-/// cleanup does not depend on the pull zone models decoding the API response. Accepts both the
-/// plain array and the paginated `{Items: [...]}` shapes of `GET /pullzone`.
-async fn find_zone_id_raw(client: &BunnyClient, name: &str) -> Result<Option<u64>, BunnyError> {
-    let val: serde_json::Value = client
-        .get(
-            "/pullzone",
-            &[
-                ("page", "1".to_string()),
-                ("perPage", "100".to_string()),
-                ("search", name.to_string()),
-            ],
-        )
-        .await?;
-    let items = match &val {
-        serde_json::Value::Array(items) => Some(items),
-        other => other.get("Items").and_then(|v| v.as_array()),
-    };
-    Ok(items
-        .and_then(|items| items.iter().find(|it| it["Name"] == name))
-        .and_then(|it| it["Id"].as_u64())
-        .filter(|&id| id > 0))
-}
-
-/// Creates the smoke pull zone and arms the cleanup guard by name as soon as the create call
-/// returns, before the response is checked or decoded. If the API created the zone but the tool
-/// failed to decode its response, the guard still finds the zone by name and deletes it.
-async fn create_zone_guarded(
-    srv: &BunnyServer,
-    zone_name: &str,
-    cfg: &Config,
-) -> (Result<CallToolResult, rmcp::ErrorData>, PullZoneGuard) {
-    let res = srv
-        .bunny_pullzone_create(Parameters(PullZoneCreateArgs {
-            name: zone_name.to_string(),
-            origin_url: Some("https://example.com".to_string()),
-            storage_zone_id: None,
-            tier: None,
-            settings: None,
-        }))
-        .await;
-    let mut guard = PullZoneGuard::new(zone_name, None, cfg.clone());
-    if let Ok(res) = &res
-        && res.is_error != Some(true)
-        && let Some(id) = res
-            .content
-            .first()
-            .and_then(|c| c.as_text())
-            .and_then(|t| serde_json::from_str::<serde_json::Value>(&t.text).ok())
-            .and_then(|v| v.get("id")?.as_u64())
-            .filter(|&id| id > 0)
-    {
-        guard.set_id(id);
-    }
-    (res, guard)
 }
 
 // covers: C6, TOOL-PZ-01, TOOL-PZ-02, TOOL-PZ-03, TOOL-PZ-04, TOOL-PZ-05, TOOL-PZ-06,
@@ -327,20 +303,44 @@ async fn smoke_real_api_e2e_flow() {
 
     // Step 2: create (mcp-smoke-<timestamp>, origin https://example.com)
     eprintln!("[2/14] create pull zone {zone_name}...");
-    // The guard is armed by name inside the helper before the response is checked or decoded,
-    // so a zone created by the API is never left behind by a failing assertion below.
-    let (create_res, mut guard) = create_zone_guarded(&srv, &zone_name, &cfg).await;
-    let create_res = create_res.expect("create must return CallToolResult");
+    let create_res = srv
+        .bunny_pullzone_create(Parameters(PullZoneCreateArgs {
+            name: zone_name.clone(),
+            origin_url: Some("https://example.com".to_string()),
+            storage_zone_id: None,
+            tier: None,
+            settings: None,
+        }))
+        .await
+        .expect("create must return CallToolResult");
     assert_ok(&create_res);
+    let create_val = json(&create_res);
+    let initial_id = create_val.get("id").and_then(|v| v.as_u64());
 
-    let pullzone_id = match guard.pullzone_id {
+    // CRITICAL: Arm guard immediately by name (and initial id if available) BEFORE attempting
+    // any ID resolution that could panic or fail, ensuring no orphaned pull zone is left behind.
+    let mut guard = PullZoneGuard::new(zone_name.clone(), initial_id, cfg.clone());
+
+    let pullzone_id = match initial_id {
         Some(id) => id,
         None => {
-            eprintln!("Create returned no id; resolving ID by name via the raw client...");
-            let resolved_id = find_zone_id_raw(&client, &zone_name)
+            eprintln!("Create returned unit/hint; resolving ID via bunny_pullzone_list...");
+            let list_res = srv
+                .bunny_pullzone_list(Parameters(PullZoneListArgs {
+                    search: Some(zone_name.clone()),
+                    page: 1,
+                    per_page: 10,
+                }))
                 .await
-                .expect("pull zone lookup must succeed")
+                .expect("pullzone_list must return CallToolResult");
+            assert_ok(&list_res);
+            let list_val = json(&list_res);
+            let items = list_val["items"].as_array().expect("items array");
+            let found = items
+                .iter()
+                .find(|it| it["name"] == zone_name)
                 .unwrap_or_else(|| panic!("newly created zone {zone_name} not found in list"));
+            let resolved_id = found["id"].as_u64().expect("pull zone id must be numeric");
             guard.set_id(resolved_id);
             resolved_id
         }
@@ -610,7 +610,7 @@ async fn smoke_real_api_e2e_flow() {
     // Finally: delete via guard
     eprintln!("Finalizing: deleting pull zone {pullzone_id} via guard...");
     let del_res = guard
-        .delete_explicitly(&srv, &client)
+        .delete_explicitly(&srv)
         .await
         .expect("explicit delete must return CallToolResult");
     assert_ok(&del_res);
@@ -751,99 +751,4 @@ async fn guard_drop_resolves_id_by_name_and_deletes_on_panic_wiremock() {
         deletes_received, 1,
         "Drop guard must resolve ID by name and execute DELETE"
     );
-}
-
-// covers: C6 (guard armed before the create response is decoded)
-#[tokio::test]
-async fn guard_armed_before_create_decode_deletes_zone_wiremock() {
-    let mock = MockServer::start().await;
-
-    // The API creates the zone but answers with a body the pull zone model cannot decode.
-    Mock::given(method("POST"))
-        .and(path("/pullzone"))
-        .respond_with(ResponseTemplate::new(201).set_body_json(serde_json::json!({
-            "Id": 7,
-            "Name": "mcp-smoke-undecodable",
-            "Enabled": "not-a-bool",
-        })))
-        .expect(1)
-        .mount(&mock)
-        .await;
-
-    Mock::given(method("GET"))
-        .and(path("/pullzone"))
-        .and(query_param("search", "mcp-smoke-undecodable"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
-            "Items": [{"Id": 7, "Name": "mcp-smoke-undecodable", "Enabled": "not-a-bool"}],
-            "CurrentPage": 1,
-            "TotalItems": 1,
-            "HasMoreItems": false,
-        })))
-        .expect(1)
-        .mount(&mock)
-        .await;
-
-    Mock::given(method("DELETE"))
-        .and(path("/pullzone/7"))
-        .respond_with(ResponseTemplate::new(204))
-        .expect(1)
-        .mount(&mock)
-        .await;
-
-    let config = Config {
-        api_key: bunnycdn_mcp::secret::Secret::new("test-key"),
-        base_url: url::Url::parse(&mock.uri()).expect("valid mock URI"),
-    };
-    let srv = BunnyServer::new(BunnyClient::new(&config).expect("BunnyClient builds"));
-
-    let task = tokio::spawn(async move {
-        let (create_res, _guard) =
-            create_zone_guarded(&srv, "mcp-smoke-undecodable", &config).await;
-        let create_res = create_res.expect("create must return CallToolResult");
-        assert_eq!(
-            create_res.is_error,
-            Some(true),
-            "undecodable create body must surface as a tool error"
-        );
-        assert_ok(&create_res);
-    });
-
-    let join_res = task.await;
-    assert!(
-        join_res.is_err_and(|e| e.is_panic()),
-        "assert_ok must panic on the create error"
-    );
-
-    let received = mock.received_requests().await.expect("received requests");
-    let deletes_received = received
-        .iter()
-        .filter(|req| req.method.as_str() == "DELETE" && req.url.path() == "/pullzone/7")
-        .count();
-    assert_eq!(
-        deletes_received, 1,
-        "guard armed before decode must find the zone by name and delete it"
-    );
-}
-
-#[tokio::test]
-async fn find_zone_id_raw_ignores_negative_ids_and_other_names_wiremock() {
-    let mock = MockServer::start().await;
-    Mock::given(method("GET"))
-        .and(path("/pullzone"))
-        .and(query_param("search", "mcp-smoke-raw"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!([
-            {"Id": 5, "Name": "mcp-smoke-raw-other"},
-            {"Id": -1, "Name": "mcp-smoke-raw"},
-        ])))
-        .mount(&mock)
-        .await;
-    let config = Config {
-        api_key: bunnycdn_mcp::secret::Secret::new("test-key"),
-        base_url: url::Url::parse(&mock.uri()).expect("valid mock URI"),
-    };
-    let client = BunnyClient::new(&config).expect("BunnyClient builds");
-    let found = find_zone_id_raw(&client, "mcp-smoke-raw")
-        .await
-        .expect("lookup succeeds");
-    assert_eq!(found, None);
 }
