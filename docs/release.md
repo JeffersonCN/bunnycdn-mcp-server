@@ -73,7 +73,7 @@ O workflow `.github/workflows/release.yml` utiliza os seguintes segredos:
 
 ### 4.1. Via Script Shell
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/JeffersonCN/bunnycdn-mcp/releases/latest/download/bunnycdn-mcp-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/JeffersonCN/bunnycdn-mcp-server/releases/latest/download/bunnycdn-mcp-installer.sh | sh
 ```
 
 ### 4.2. Via Homebrew

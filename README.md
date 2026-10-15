@@ -66,7 +66,7 @@ Releases will ship `tar.xz` archives (with `.sha256`) for `aarch64-apple-darwin`
 installer:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/JeffersonCN/bunnycdn-mcp/releases/latest/download/bunnycdn-mcp-installer.sh | sh
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/JeffersonCN/bunnycdn-mcp-server/releases/latest/download/bunnycdn-mcp-installer.sh | sh
 ```
 
 ## Configuration
