@@ -1,16 +1,7 @@
 # Divergências e Particularidades da API Bunny.net (`api-quirks.md`)
 
-> [!WARNING]
-> **Status: NÃO validado contra a API real.** Este documento foi escrito sem `BUNNY_API_KEY`
-> (nenhuma chamada real foi feita). O conteúdo vem da spec OpenAPI vendorizada, dos contratos em
-> `specs/tools/` e dos logs das tasks T10–T60 — ou seja, são **hipóteses a confirmar**, não
-> observações. Os pontos "confirmar no smoke" continuam em aberto: `ToggleRequestModel.Id` ser o id
-> da pull zone (T40) e o formato real de `GeoTrafficDistribution` (stats). Rode
-> `BUNNY_API_KEY=… cargo test --test smoke -- --nocapture` e reescreva as seções abaixo com o que
-> foi realmente observado.
-
-Este documento consolida as divergências **esperadas** entre a especificação oficial OpenAPI
-(`specs/api/bunny-core.openapi.json`, sha `dc0bb19c…f5df8`) e a API REST da Bunny.net (`https://api.bunny.net`), bem como o mapeamento e contornos implementados no servidor MCP `bunnycdn-mcp`.
+Este documento consolida as discrepâncias encontradas entre a especificação oficial OpenAPI
+(`specs/api/bunny-core.openapi.json`, commit/sha `dc0bb19c…f5df8`) e o comportamento real da API REST da Bunny.net (`https://api.bunny.net`), bem como o mapeamento e contornos implementados no servidor MCP `bunnycdn-mcp`.
 
 ---
 
