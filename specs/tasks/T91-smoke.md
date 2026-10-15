@@ -1,6 +1,6 @@
 # T91 — Smoke tests contra a API real
 
-> **Status:** approved  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
+> **Status:** review  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -30,10 +30,52 @@
 
 ## Critérios de aceite
 - [x] Sem `BUNNY_API_KEY`, `cargo test` passa sem rede.
-- [ ] Com key, fluxo completo passa e não deixa pull zone órfã. (**não verificado**: sem `BUNNY_API_KEY`)
-- [ ] Divergências registradas e com CR. (**não verificado**: `docs/api-quirks.md` ainda são hipóteses)
+- [x] Com key, fluxo completo passa e não deixa pull zone órfã. (execução real de 2026-10-14: 14
+  passos, `5 passed; 0 failed`; zona `6803831` removida e confirmada inexistente no painel; ver Log)
+- [x] Divergências registradas e com CR. (única divergência observada, IDs `-1`, tem a CR-T91-3;
+  os demais itens estão em `docs/api-quirks.md` como "não observado nesta execução")
 
 ## Log do agente
+- **2026-10-14 — Fechamento documental (claude-code / claude-opus-5-5):**
+  - Execução real do smoke (feita pelo usuário com `BUNNY_API_KEY`; a key não passou por este
+    agente), após CR-T91-3. Saída relatada:
+    - `[2/14] create pull zone mcp-smoke-1792031170` → `Created pull zone id: 6803831`.
+    - `[3/14] get summary and verbose`, `[4/14] update CacheControlMaxAgeOverride to 3600`,
+      `[5/14] access_list add/remove blocked_ip 192.0.2.1`, `[6/14] edgerule_upsert create cache rule`,
+      `[7/14] edgerule_list`, `[8/14] edgerule_set_enabled to false`, `[9/14] edgerule_delete`,
+      `[10/14 (optional)] BUNNY_SMOKE_HOSTNAME not set; skipping`, `[11/14] purge_pullzone`,
+      `[12/14] purge_url`, `[13/14] statistics`, `[14/14] region_list and country_list`.
+    - `Finalizing: deleting pull zone 6803831 via guard` seguido de `Smoke test completed successfully`.
+    - `test result: ok. 5 passed; 0 failed`, 29,86 s.
+  - Limpeza: o usuário confirmou no painel que a zona `6803831` não existe mais. A zona órfã da
+    execução anterior (`mcp-smoke-1792029815`) também foi removida por ele.
+  - Decisão sobre o critério "não deixa pull zone órfã" (marcado): não há uma linha explícita
+    confirmando o DELETE, mas em `tests/smoke.rs` a mensagem `Smoke test completed successfully` só é
+    impressa depois de `assert_ok(&del_res)`, `del_val["ok"] == true` e
+    `del_val["deleted_id"] == pullzone_id`. Se o DELETE tivesse falhado, o teste teria entrado em
+    pânico antes. Somado à confirmação no painel, considero a evidência suficiente.
+    Ressalva: esta execução cobriu o DELETE do fluxo feliz. O `Drop` em caso de pânico continua
+    coberto pelos testes wiremock, não pela API real.
+  - Nota sobre a numeração: o pedido do orquestrador chamava de "critério 2" a remoção ao final e de
+    "critério 3" o fluxo completo. Neste arquivo, as duas coisas estão no critério 2 ("fluxo completo
+    passa e não deixa pull zone órfã"). O critério 3 ("divergências registradas e com CR") também foi
+    marcado: a única divergência observada (IDs `-1`) tem a CR-T91-3, já aplicada.
+  - `docs/api-quirks.md` reescrito: o aviso "NÃO validado" saiu, e cada item agora diz se foi
+    observado ou não. **Observado:** IDs `-1` significam "sem valor". A falha de decodificação da
+    primeira execução confirmou isso, e `non_negative_id` em `src/model/pullzone.rs` trata o caso.
+    **Não observado nesta execução:** `ToggleRequestModel.Id` (T40), o formato de
+    `GeoTrafficDistribution`, se create e update devolvem corpo, o formato de `GET /pullzone` e o
+    DELETE com body (passo de hostname pulado). Nenhum payload foi copiado nem inventado.
+    Observação: a saída relatada não traz a linha `Create returned no id; resolving ID by name...`,
+    o que sugere que o create devolveu `id`. Como a saída pode estar resumida, não registrei isso
+    como observado.
+  - Pontos ainda abertos para uma próxima execução, se alguém quiser fechá-los: rodar com
+    `BUNNY_SMOKE_HOSTNAME` e registrar os corpos crus de create, update e statistics.
+  - Arquivos editados: só `docs/api-quirks.md` e este arquivo (status, critérios e Log). Código,
+    `tests/`, `Cargo.*`, a seção Revisão e a CR de REQ-NF-02 não foram tocados.
+  - Gate (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test
+    --workspace`, exit 0): fmt ok; clippy ok; 183 testes passando e 2 doc-tests ignorados. Sem key no
+    ambiente, o smoke saiu cedo, como esperado.
 - **2026-10-14 — Correção rodada 4 (claude-code / claude-opus-5-5):**
   - Sintoma relatado: em `da7a503`, `guard_armed_before_create_decode_deletes_zone_wiremock` falhava
     com `deletes_received == 0` e nenhuma linha `[SMOKE GUARD]`.
