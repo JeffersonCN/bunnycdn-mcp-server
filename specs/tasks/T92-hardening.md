@@ -1,6 +1,6 @@
 # T92 — Medição de leveza, ajuste de dependências e README
 
-> **Status:** review  ·  **Agente:** claude-opus-5-5 (Maestro task/T92-hardening)  ·  **Branch:** `task/T92-hardening`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** claude-opus-5-5 (Maestro task/T92-hardening)  ·  **Branch:** `task/T92-hardening`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível B · outro fornecedor
 
@@ -67,5 +67,50 @@ por este próprio agente (é a última onda, sem concorrência).
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 1 — 2026-10-14 — rev-T92 (gemini-3.8-flash-high / Google DeepMind)
+**Veredito:** approved
+**Gate:** verde (`cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace && cargo xtask codegen --check` retornaram 0)
+**Bloqueantes:** nenhum
+**Não bloqueantes:**
+- Comandos de publicação (Homebrew tap, instalador shell de release no GitHub, imagem ghcr.io) contêm o placeholder `OWNER` e continuam pendentes do usuário para setup e release pública, conforme devidamente documentado e demarcado no README e docs.
+
+#### Evidências da reprodução independente
+
+1. **Gate C6 com saída de cada etapa:**
+   - `cargo fmt --check`: exit code 0
+   - `cargo clippy --workspace --all-targets -- -D warnings`: exit code 0
+   - `cargo test --workspace`: exit code 0 (183 passed; 0 failed; 2 ignored; doctests ok)
+   - `cargo xtask codegen --check`: exit code 0
+
+2. **Escopo (`git diff --stat main..HEAD`):**
+   ```text
+    README.md                    | 186 +++++++++++++++++++++++++++++++++++++++++++
+    docs/performance.md          |  66 +++++++++++++++
+    scripts/measure.sh           | 120 ++++++++++++++++++++++++++++
+    specs/tasks/T92-hardening.md |  41 +++++++++-
+    4 files changed, 409 insertions(+), 4 deletions(-)
+   ```
+   Apenas arquivos possuídos alterados (`README.md`, `docs/performance.md`, `scripts/measure.sh`, `specs/tasks/T92-hardening.md`). Nada em `src/`, `tests/`, `Cargo.toml` ou `Cargo.lock`.
+
+3. **Medição (`./scripts/measure.sh`):**
+   - Binário: 3,98 MB (4 171 904 B) (meta ≤ 8 MB: OK)
+   - RSS ocioso: 8,55 MB (meta ≤ 10 MB: OK)
+   - Startup: 6,4 ms mediana de 20 amostras (min 6,0 / med 6,4 / max 8,4 ms) (meta ≤ 20 ms: OK)
+   - Auditoria de segredos na saída do script: `./scripts/measure.sh 2>&1 | grep -i -E "(key|secret|token|measure-dummy-key)"` retornou vazio (nenhum segredo ou chave exposta).
+
+4. **Instalação e alinhamento do README:**
+   - `cargo build --release --locked`: OK (binário 0.1.0 gerado).
+   - `cargo install --path . --locked --root target/rev-install`: OK (instalado e validado `bunnycdn-mcp 0.1.0`).
+   - Comandos com dependência de publicação (`brew`, `curl .../installer.sh | sh`, `ghcr.io/OWNER/bunnycdn-mcp`) marcados explicitamente como *pending* com placeholder `OWNER` sem organização inventada.
+   - Referências de manifesto e workflow conferidas: `Dockerfile` (scratch, user 65534, port 8080 HTTP), `dist-workspace.toml` (v0.33.0, 4 targets, shell e homebrew tap OWNER), `.github/workflows/release.yml`, e `Cargo.toml` (licença, repo, MSRV 1.88).
+   - Tabela das 24 tools no README: conferida item a item contra `tests/snapshots/contract__tools_list.snap` (exatas 24 ferramentas, mesmos nomes, descrições e anotações/kinds: read-only, write, destructive).
+
+5. **Modo HTTP e documentação:**
+   - Aviso de segurança em bloco `[!WARNING]` no README detalha ausência de autenticação nativa, recomendação de loopback (`127.0.0.1`), uso de reverse proxy, mitigação de DNS rebinding (`--allowed-host`) e publicação no Docker com `-p 127.0.0.1:8080:8080`.
+   - Números de `docs/performance.md` coincidem estritamente com o registrado no Log do agente.
+
+6. **Critérios de aceite:**
+   - Todos os 3 critérios `[x]` validados com evidência reproduzida.
 
 ## Change requests
