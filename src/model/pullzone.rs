@@ -3,7 +3,7 @@
 //! Tolerant models for deserializing Bunny API responses and projections for MCP output.
 
 use rmcp::schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::client::BunnyError;
 
@@ -113,10 +113,17 @@ pub struct PullZoneUsageSummary {
     pub monthly_charges: f64,
 }
 
+/// Reads an optional integer ID. Bunny uses `-1` for "no value" in ID fields, so negative values
+/// (like `null` or a missing field) become `None`.
+fn non_negative_id<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u64>, D::Error> {
+    Ok(Option::<i64>::deserialize(d)?.and_then(|v| u64::try_from(v).ok()))
+}
+
 /// Tolerant raw model matching Bunny API `PullZoneModel`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct RawPullZone {
+    #[serde(default, deserialize_with = "non_negative_id")]
     pub id: Option<u64>,
     pub name: Option<String>,
     pub origin_url: Option<String>,
@@ -124,8 +131,11 @@ pub struct RawPullZone {
     pub suspended: Option<bool>,
     #[serde(default)]
     pub hostnames: Vec<RawHostname>,
+    #[serde(default, deserialize_with = "non_negative_id")]
     pub storage_zone_id: Option<u64>,
+    #[serde(default, deserialize_with = "non_negative_id")]
     pub edge_script_id: Option<u64>,
+    #[serde(default, deserialize_with = "non_negative_id")]
     pub middleware_script_id: Option<u64>,
     pub magic_containers_app_id: Option<String>,
     #[serde(default)]
@@ -166,6 +176,7 @@ pub struct RawPullZone {
     pub shield_ddos_protection_enabled: Option<bool>,
     pub enable_request_coalescing: Option<bool>,
     pub enable_bunny_image_ai: Option<bool>,
+    #[serde(default, deserialize_with = "non_negative_id")]
     pub load_balancer_id: Option<u64>,
     pub enable_web_sockets: Option<bool>,
 }
@@ -174,6 +185,7 @@ pub struct RawPullZone {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
 pub struct RawHostname {
+    #[serde(default, deserialize_with = "non_negative_id")]
     pub id: Option<u64>,
     pub value: Option<String>,
     #[serde(rename = "ForceSSL", alias = "ForceSsl")]
@@ -422,5 +434,75 @@ impl RawPullZone {
             hostnames,
             monthly_bandwidth_used: self.monthly_bandwidth_used.unwrap_or(0),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn raw(id: serde_json::Value) -> RawPullZone {
+        serde_json::from_value(json!({
+            "Id": id,
+            "StorageZoneId": id,
+            "EdgeScriptId": id,
+            "MiddlewareScriptId": id,
+            "LoadBalancerId": id,
+            "Hostnames": [{"Id": id, "Value": "a.b-cdn.net"}],
+        }))
+        .unwrap()
+    }
+
+    fn ids(r: &RawPullZone) -> [Option<u64>; 6] {
+        [
+            r.id,
+            r.storage_zone_id,
+            r.edge_script_id,
+            r.middleware_script_id,
+            r.load_balancer_id,
+            r.hostnames[0].id,
+        ]
+    }
+
+    #[test]
+    fn negative_ids_become_none() {
+        assert_eq!(ids(&raw(json!(-1))), [None; 6]);
+    }
+
+    #[test]
+    fn zero_ids_are_kept() {
+        assert_eq!(ids(&raw(json!(0))), [Some(0); 6]);
+    }
+
+    #[test]
+    fn positive_ids_are_kept() {
+        assert_eq!(ids(&raw(json!(12345))), [Some(12345); 6]);
+    }
+
+    #[test]
+    fn null_and_missing_ids_are_none() {
+        assert_eq!(ids(&raw(json!(null))), [None; 6]);
+        let r: RawPullZone = serde_json::from_value(json!({"Name": "x"})).unwrap();
+        assert_eq!(r.id, None);
+        assert_eq!(r.load_balancer_id, None);
+    }
+
+    #[test]
+    fn summary_decodes_with_negative_ids() {
+        let v = json!({
+            "Id": 77,
+            "Name": "mcp-smoke-1",
+            "OriginUrl": "https://example.com",
+            "StorageZoneId": -1,
+            "EdgeScriptId": -1,
+            "MiddlewareScriptId": -1,
+            "LoadBalancerId": -1,
+            "Hostnames": [{"Id": -1, "Value": "mcp-smoke-1.b-cdn.net"}],
+        });
+        let s = PullZoneSummary::from_value(&v).unwrap();
+        assert_eq!(s.id, 77);
+        assert_eq!(s.origin, "https://example.com");
+        assert_eq!(s.hostnames[0].value, "mcp-smoke-1.b-cdn.net");
     }
 }

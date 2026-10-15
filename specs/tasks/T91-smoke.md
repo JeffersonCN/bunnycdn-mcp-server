@@ -1,6 +1,6 @@
 # T91 — Smoke tests contra a API real
 
-> **Status:** approved  ·  **Agente:** antigravity (gemini-3.8-flash-high)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
+> **Status:** review  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -34,6 +34,36 @@
 - [ ] Divergências registradas e com CR. (**não verificado**: `docs/api-quirks.md` ainda são hipóteses)
 
 ## Log do agente
+- **2026-10-14 — Correção rodada 3 (claude-code / claude-opus-5-5):**
+  - Causa: a execução real do smoke (feita pelo usuário) falhou em `[2/14] create` com
+    `failed to decode pull zone summary: invalid value: integer -1, expected u64`. A Bunny API
+    devolve `-1` em campos de ID sem valor. Como o guard só era armado depois do `assert_ok`, a zona
+    criada ficou órfã na conta.
+  - CR-T91-3 (registrada em "Change requests"): em `src/model/pullzone.rs`, os campos `id`,
+    `storage_zone_id`, `edge_script_id`, `middleware_script_id` e `load_balancer_id` de
+    `RawPullZone`, e `id` de `RawHostname`, usam o `deserialize_with = "non_negative_id"` local
+    (`i64` → `u64::try_from`; negativo/`null`/ausente → `None`). Tipos públicos, outros campos e
+    `compute_origin` não mudaram. Há 5 testes unitários novos: `-1`, `0`, positivo, `null`/ausente
+    e um `PullZoneSummary::from_value` com IDs `-1`.
+  - (a) `tests/smoke.rs`: o novo `create_zone_guarded` arma o `PullZoneGuard` pelo nome assim que
+    `bunny_pullzone_create` retorna, antes do `expect`, do `assert_ok` e de qualquer leitura do
+    corpo. O ID só é preenchido se a resposta for sucesso com `id > 0`.
+  - (b) A resolução de ID por nome (fluxo principal, `delete_explicitly` e `Drop`) agora usa
+    `find_zone_id_raw`, que faz `GET /pullzone` pelo `BunnyClient` e lê o JSON cru (array ou
+    `{Items}`), sem os modelos de pull zone. Assim, a limpeza não depende de decodificação. Isso
+    também remove a duplicação apontada no N2 da rodada 2. A limpeza de stale continua usando
+    `bunny_pullzone_list`, que volta a funcionar com a CR.
+  - Testes wiremock novos: `guard_armed_before_create_decode_deletes_zone_wiremock` (o create
+    devolve um corpo que não decodifica, `assert_ok` entra em pânico e o guard acha a zona pelo nome
+    e emite 1 DELETE; o teste **falha** se o guard for armado depois da checagem, o que conferi
+    simulando a ordem antiga) e `find_zone_id_raw_ignores_negative_ids_and_other_names_wiremock`.
+  - Não rodei o smoke real (sem `BUNNY_API_KEY`). **Ação do usuário:** apagar à mão a zona
+    `mcp-smoke-*` órfã da execução que falhou (ou deixar a limpeza de stale > 15 min da próxima
+    execução apagá-la, se estiver na página 1 da busca) e rodar de novo
+    `BUNNY_API_KEY=… cargo test --test smoke -- --nocapture --test-threads=1`.
+  - Gate (com `env -u BUNNY_API_KEY`): `cargo fmt --check` ok; `cargo clippy --workspace
+    --all-targets -- -D warnings` ok; `cargo test --workspace` ok, 183 testes passando
+    (lib 60, smoke 5) e 2 doc-tests ignorados.
 - **2026-10-14 — Correção rodada 2 (antigravity / gemini-3.8-flash-high):**
   - Corrigido bloqueante 1 de C6: `PullZoneGuard::drop` agora instancia um `BunnyClient` novo e independente dentro da thread/runtime de limpeza desacoplada (`BunnyClient::new(&self.config)`), eliminando o deadlock/starvation de pool de conexões HTTP presas ao runtime `current_thread` do teste.
   - Implementado teste wiremock `guard_drop_deletes_pullzone_after_request_panic_wiremock` simulando requisição prévia (GET) e pânico subsequente dentro de runtime `current_thread`, validando que `_guard.drop()` executa com sucesso e que `deletes_received == 1` no mock sem timeout ou bloqueio.
@@ -127,5 +157,13 @@ Verificado e OK: B1 (T11, T12, T20, T30, T40, T50 e T60 estão `done`); B2/B3 (o
 - Nota ao orquestrador: com `BUNNY_API_KEY` exportada no shell (comum em quem desenvolve este projeto), o gate local `cargo test --workspace` executa o smoke contra a API real. Isso segue o entregável 1 ("não usar `#[ignore]`"), mas contraria a expectativa de que o gate seja offline. Para mudar, abra uma CR na task ou na constituição (por exemplo, exigir também `BUNNY_SMOKE=1`).
 
 ## Change requests
+- **CR-T91-3 (2026-10-14, claude-opus-5-5) — `src/model/pullzone.rs` (T11, congelado):** a execução
+  real do smoke falhou em `[2/14] create` com `failed to decode pull zone summary: invalid value:
+  integer -1, expected u64`. A Bunny API usa `-1` como "sem valor" em campos de ID. Mudança: os
+  campos `Id`, `StorageZoneId`, `EdgeScriptId`, `MiddlewareScriptId` e `LoadBalancerId` de
+  `RawPullZone`, e `Id` de `RawHostname`, passam a usar um `deserialize_with` local que lê `i64` e
+  devolve `None` para valores negativos (e para `null`/ausente). Não muda tipos públicos, outros
+  campos nem a lógica de `compute_origin`. Sem dependências novas. Testes unitários para `-1`, `0`,
+  positivo e `null` no próprio módulo.
 - Todas as particularidades de comportamento da API real identificadas já foram incorporadas aos contratos em `specs/tools/` durante as tasks da Onda 1 ou registradas em CR-1 (em `specs/tasks/T60-reference.md`). Nenhuma nova alteração em arquivos congelados ou contratos é necessária nesta etapa.
 
