@@ -64,6 +64,7 @@
     - Representação schemars de `Option<T>` como `{"type": ["<type>", "null"]}` em vez de propriedade opcional.
   - Conforme instrução do entregável 3 ("Se estourar, abrir CRs de redução de descrições nos contratos e listar os maiores ofensores no log"), foi aberta a **CR-02** para que as descrições e schemas sejam otimizados na Wave 3 (T92 - Hardening).
   - No teste `contract_tools_list_token_budget`, foi fixado um teto de segurança de 20 KB para evitar regressões até a aplicação da CR-02.
+  - **CR-02 aplicada parcialmente (orquestrador, 2026-10-14, decisão do usuário):** REQ-NF-02 passou a ≤ 20 KB em `specs/requirements.md`. A redução de schema para 12 KB segue como meta, a reavaliar após a T92.
 - Entregável 4: Atualizado `tests/e2e_stdio.rs` (CR-01) para asserção estrita `assert_eq!(tools.len(), 24);`.
 - Gate: `cargo fmt --check && cargo clippy --workspace --all-targets -- -D warnings && cargo test --workspace` 100% verde.
 
