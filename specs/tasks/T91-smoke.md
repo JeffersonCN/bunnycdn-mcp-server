@@ -1,6 +1,6 @@
 # T91 — Smoke tests contra a API real
 
-> **Status:** review  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
+> **Status:** approved  ·  **Agente:** claude-code (claude-opus-5-5)  ·  **Branch:** `task/T91-smoke`  ·  **Atualizado:** 2026-10-14
 >
 > **Perfil:** implementar: nível A  ·  revisar: nível A · outro fornecedor
 
@@ -184,6 +184,83 @@
 
 ## Revisão
 <!-- Exclusiva do revisor (specs/review-checklist.md). Mais recente primeiro. -->
+
+### Rodada 5 — 2026-10-14 — rev-T91-docs: antigravity (Gemini 3.8 Flash) / Google
+**Veredito:** approved
+**Gate:** verde (executado sem `BUNNY_API_KEY` no ambiente; checagem individual do código de saída de cada etapa sem encadear com `;`: FMT_EXIT=0, CLIPPY_EXIT=0, TEST_EXIT=0; 183 testes passando, 2 doc-tests ignorados).
+
+**Log de verificação (saída colada):**
+```text
+# (1) Gate: checagem do código de saída por etapa (sem encadear com ';')
+$ cargo fmt --check
+FMT_EXIT=0
+
+$ cargo clippy --workspace --all-targets -- -D warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.37s
+CLIPPY_EXIT=0
+
+$ cargo test --workspace
+test result: ok. 60 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (src/lib.rs)
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s (src/main.rs)
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (model/stats)
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s (tests/contract.rs)
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s (tests/core.rs)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (tests/e2e_stdio.rs)
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (tests/edgerule.rs)
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s (tests/hostname.rs)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s (tests/http.rs)
+test result: ok. 33 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s (tests/pullzone.rs)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (tests/purge.rs)
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (tests/reference.rs)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s (tests/smoke.rs)
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s (tests/stats.rs)
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s (xtask)
+Doc-tests: 2 ignored
+TEST_EXIT=0
+
+# (2) Inércia do smoke sem BUNNY_API_KEY no ambiente
+running 5 tests
+test smoke_real_api_e2e_flow ... ok
+test find_zone_id_raw_ignores_negative_ids_and_other_names_wiremock ... ok
+test guard_drop_resolves_id_by_name_and_deletes_on_panic_wiremock ... ok
+test guard_drop_deletes_pullzone_after_request_panic_wiremock ... ok
+test guard_armed_before_create_decode_deletes_zone_wiremock ... ok
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+# (3) Verificação de escopo
+$ git diff --stat main..HEAD
+ docs/api-quirks.md       | 218 +++++++++++++++++++++++++----------------------
+ specs/tasks/T91-smoke.md |  48 ++++++++++-
+ 2 files changed, 162 insertions(+), 104 deletions(-)
+
+# (4) Verificação de segredos em docs/ e specs/
+$ grep -rn "BUNNY_API_KEY" docs/ specs/
+(apenas referências ao nome da variável de ambiente e placeholders genéricos como "seu-token-aqui")
+$ git diff main..HEAD | grep -E "[0-9a-fA-F]{32,}"
+(nenhum segredo, hash longo ou token)
+```
+
+**Verificação dos itens avaliados:**
+- ✓ **Gate verde:** `cargo fmt --check` (exit 0), `cargo clippy --workspace --all-targets -- -D warnings` (exit 0) e `cargo test --workspace` (exit 0) executados isoladamente com sucesso total (183 testes passando, 2 doc-tests ignorados).
+- ✓ **Critérios de aceite e evidência:**
+  - Critério 1 (`[x]` Sem `BUNNY_API_KEY`): reproduzido diretamente no ambiente pelo revisor. O teste `smoke_real_api_e2e_flow` pula a execução sem rede.
+  - Critério "fluxo completo com key" (`[x]`): a execução real da API Bunny foi executada diretamente pelo usuário (a chave não passou por agentes), cobrindo os 14 passos do fluxo com sucesso (`test result: ok. 5 passed; 0 failed` em 29,86 s, zona criada `6803831`).
+  - Critério "zona removida ao fim, mesmo em falha" (`[x]`): fica expressamente registrado que a execução real foi feita pelo usuário e que a linha com o termo explícito `DELETE` não aparece na saída do terminal. Em `tests/smoke.rs`, `delete_explicitly` invoca a tool `bunny_pullzone_delete` e verifica `assert_ok(&del_res)`, `del_val["ok"] == true` e `del_val["deleted_id"] == pullzone_id` sem emitir log textual intermediário (logs explícitos de DELETE só ocorrem em `PullZoneGuard::drop` durante unwinding de pânico). Como a mensagem `Smoke test completed successfully` só é alcançada após as asserções de deleção bem-sucedida, se o DELETE tivesse falhado o teste teria entrado em pânico antes. Adicionalmente, o usuário inspecionou e confirmou no painel web da Bunny que a zona `6803831` não existe mais. A deleção em cenário de falha/pânico permanece garantida e coberta pelos testes wiremock do guard. Portanto, a evidência é objetivamente suficiente para sustentar o critério marcado.
+  - Critério "divergências registradas e com CR" (`[x]`): documentação alinhada. A única divergência observada na prática (IDs `-1` retornados pela Bunny para campos vazios) está documentada como Observado e possui a CR-T91-3 aplicada (`non_negative_id` em `src/model/pullzone.rs`).
+- ✓ **Documentação (`docs/api-quirks.md`):**
+  - O aviso de "NÃO validado" foi completamente removido (nenhuma ocorrência).
+  - Os itens não observados (`ToggleRequestModel.Id`, `GeoTrafficDistribution`, formato de corpo de create/update, paginação de `GET /pullzone`, `DELETE` com body de hostname) estão explicitamente marcados como "Não observado nesta execução", sem inventar formatos fictícios nem payloads não observados.
+  - O quirk "IDs `-1` significam sem valor" está marcado como **Observado**, referenciando o tratamento via `non_negative_id` em `src/model/pullzone.rs` e a respectiva CR-T91-3.
+- ✓ **Escopo (`git diff --stat main..HEAD`):**
+  - Altera exclusivamente `docs/api-quirks.md` e `specs/tasks/T91-smoke.md`. Nenhum arquivo de código, contrato ou configuração de dependência (`Cargo.toml`/`Cargo.lock`) foi tocado além do escopo da task.
+- ✓ **Segredos:**
+  - Nenhuma chave de API real, token ou credencial vazada em `docs/` e `specs/`.
+
+**Bloqueantes:**
+Nenhum.
+
+**Não bloqueantes:**
+Nenhum.
 
 ### Rodada 4 — 2026-10-14 — rev-T91: claude-opus-5-5/Anthropic
 **Veredito:** approved (com pendência de execução real; ver abaixo)
